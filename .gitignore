@@ -5,3 +5,4 @@ yunshi.db
 *.db
 *.db-shm
 *.db-wal
+out/
