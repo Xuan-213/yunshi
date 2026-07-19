@@ -17,7 +17,6 @@ export default function DivinationPage() {
   const [mode, setMode] = useState<DivMode>("meihua");
   const [wyMethod, setWyMethod] = useState<WyMethod>("time");
   const [question, setQuestion] = useState("");
-  const [questionType, setQuestionType] = useState("财运");
 
   // 梅花: 3 numbers
   const [nums, setNums] = useState(["3", "8", "5"]);
@@ -32,6 +31,7 @@ export default function DivinationPage() {
   const [meihuaText, setMeihuaText] = useState("");
   const [liuyaoResult, setLiuyaoResult] = useState<LiuYaoResult | null>(null);
   const [liuyaoText, setLiuyaoText] = useState("");
+  const [dongYaoNum, setDongYaoNum] = useState(3);
 
   const now = new Date();
 
@@ -56,19 +56,20 @@ export default function DivinationPage() {
 
   /** 六爻起卦 */
   function doLiuyao() {
-    const aaa = parseInt(digits.slice(0,3).join("")) || 385;
-    const bbb = parseInt(digits.slice(3,6).join("")) || 724;
-    const shang = aaa % 8;
-    const xia = bbb % 8;
-    const dong = (aaa + bbb) % 6;
+    const dStr = digits.join("");
+    const aaa = parseInt(dStr.slice(0, 3)) || 0;
+    const bbb = parseInt(dStr.slice(3, 6)) || 0;
+    const shang = aaa % 8 || 8;
+    const xia = bbb % 8 || 8;
+    const dong = (aaa + bbb) % 6 || 6;
     const result = zhuangGua(
-      shang, xia, dong, questionType,
+      shang, xia, dong, "财运",
       now.getFullYear(), now.getMonth() + 1, now.getDate()
     );
     setLiuyaoResult(result);
-    const interpretation = interpretLiuyao(result, question || "未指定", questionType);
-    setLiuyaoText(interpretation);
-    addDivination({ mode: "liuyao", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType, input: { digits, shang, xia, dong }, result });
+    setDongYaoNum(dong);
+    setLiuyaoText(interpretLiuyao(result, question || "未指定", dStr, shang, xia, dong));
+    addDivination({ mode: "liuyao", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType: "", input: { digits: dStr, shang, xia, dong }, result });
   }
 
   return (
@@ -187,61 +188,49 @@ export default function DivinationPage() {
                   placeholder="例如：这笔投资能赚钱吗？" value={question} onChange={e => setQuestion(e.target.value)} />
               </div>
 
-              <label className="block text-sm font-semibold mb-2">问题类型（用于选取用神）</label>
-              <div className="grid grid-cols-4 gap-2 mb-5">
-                {["💰 财运","💼 事业","❤️ 感情","🏥 健康","✈️ 出行","🔍 寻物","📚 学业","💬 其他"].map(t => {
-                  const raw = t.replace(/^.\s/, "");
-                  return (
-                    <span key={t} onClick={() => setQuestionType(raw)}
-                      className={`px-3 py-2 border rounded-lg text-center text-sm cursor-pointer transition-all duration-150 ${questionType === raw ? "border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-bg)]" : "border-[var(--color-border)] bg-white hover:border-[var(--color-accent)]"}`}>{t}</span>
-                  );
-                })}
-              </div>
-
-              <label className="block text-sm font-semibold mb-3">输入 6 位数字（aaabbb）</label>
-              <div className="flex gap-2.5 justify-center mb-3">
-                {digits.map((d, i) => (
-                  <input key={i} maxLength={1} value={d}
-                    className={`w-16 h-14 text-center text-2xl font-semibold border-2 border-[var(--color-border)] rounded-xl bg-white focus:border-[var(--color-accent)] outline-none ${i === 2 ? "mr-2" : ""}`}
-                    onChange={e => { const cp = [...digits]; cp[i] = e.target.value; setDigits(cp); }} />
-                ))}
-              </div>
+              <label className="block text-sm font-semibold mb-3">输入 6 位数字</label>
+              <input
+                className="w-full px-4 py-3 border-2 border-[var(--color-border)] rounded-xl text-2xl text-center font-semibold bg-white tracking-[0.3em] outline-none focus:border-[var(--color-accent)] transition-colors"
+                maxLength={6}
+                placeholder="441486"
+                value={digits.join("")}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setDigits(val.split("").concat(Array(6).fill("")).slice(0, 6));
+                }}
+              />
               {(() => {
-                const a = parseInt(digits.slice(0,3).join("")) || 0;
-                const b = parseInt(digits.slice(3,6).join("")) || 0;
-                return <p className="text-xs text-[var(--color-text-hint)] text-center mb-5">上卦: {a} % 8 = <strong className="text-[var(--color-text-primary)]">{a%8||8}</strong> · 下卦: {b} % 8 = <strong className="text-[var(--color-text-primary)]">{b%8||8}</strong> · 动爻: ({a}+{b}) % 6 = <strong className="text-[var(--color-text-primary)]">{(a+b)%6||6}</strong></p>;
+                const dStr = digits.join("");
+                const a = parseInt(dStr.slice(0, 3)) || 0;
+                const b = parseInt(dStr.slice(3, 6)) || 0;
+                const s = a % 8 || 8;
+                const x = b % 8 || 8;
+                const d = (a + b) % 6 || 6;
+                const bagua = ["","乾 ☰","兑 ☱","离 ☲","震 ☳","巽 ☴","坎 ☵","艮 ☶","坤 ☷"];
+                return dStr.length === 6 ? (
+                  <p className="text-sm text-center mt-3 mb-2 leading-relaxed">
+                    前三位 <strong>{a}</strong> ÷ 8 余 <strong>{s}</strong> → <strong>{bagua[s]}</strong>（上卦）
+                    &nbsp;·&nbsp;
+                    后三位 <strong>{b}</strong> ÷ 8 余 <strong>{x}</strong> → <strong>{bagua[x]}</strong>（下卦）
+                    &nbsp;·&nbsp;
+                    <strong>{a}+{b}</strong> ÷ 6 余 <strong>{d}</strong> → 第 <strong>{d}</strong> 爻动
+                  </p>
+                ) : (
+                  <p className="text-xs text-[var(--color-text-hint)] text-center mt-2">输入 6 位数字后自动显示卦象预览</p>
+                );
               })()}
 
               <button onClick={doLiuyao}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">🪙 开始解卦</button>
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors mt-3">🪙 开始解卦</button>
 
               {/* ---- Result ---- */}
               {liuyaoResult && (
                 <div className="mt-8">
-                  <div className="flex items-center gap-3 text-xs text-[var(--color-text-hint)] mb-4"><span className="flex-1 h-px bg-[var(--color-border)]" />解卦结果<span className="flex-1 h-px bg-[var(--color-border)]" /></div>
                   <div className="bg-white border border-[var(--color-border)] rounded-xl p-6">
-                    <div className="text-center mb-5">
-                      <div className="text-2xl font-bold">{liuyaoResult.benGuaName} → {liuyaoResult.bianGuaName}</div>
-                      <div className="text-sm text-[var(--color-text-dim)] mt-1">{liuyaoResult.gongName}宫 · 世在{["","初","二","三","四","五","上"][liuyaoResult.shiYaoPos]}爻</div>
+                    <div className="text-center mb-6 pb-4 border-b border-[var(--color-border-light)]">
+                      <div className="text-2xl font-bold mb-2">{liuyaoResult.benGuaName} → {liuyaoResult.bianGuaName}</div>
+                      <div className="text-sm text-[var(--color-text-dim)]">第{["","一","二","三","四","五","六"][dongYaoNum]}爻动</div>
                     </div>
-
-                    {/* 六爻表 */}
-                    <div className="bg-[#fdfcfa] rounded-lg p-4 mb-4 font-mono text-sm">
-                      {liuyaoResult.lines.map(row => (
-                        <div key={row.position} className={`flex justify-between py-1 border-b border-[var(--color-border-light)] last:border-b-0 ${row.isMoving ? "bg-[var(--color-accent-bg)] -mx-2 px-2 rounded" : ""}`}>
-                          <span>{row.position}{row.shiYing ? ` · ${row.shiYing}` : ""}</span>
-                          <span>{row.isMoving ? "○" : "  "} {row.original} {row.najiaDiZhi} {row.liuShen}</span>
-                          <span className="text-[var(--color-text-dim)]">{row.liuQin}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 mb-4 flex-wrap">
-                      <span className="px-2 py-1 rounded-md text-xs font-medium bg-[var(--color-green-bg)] text-[var(--color-green)]">用神: {liuyaoResult.yongShen.liuQin}爻（{liuyaoResult.yongShen.position}）</span>
-                      <span className="px-2 py-1 rounded-md text-xs font-medium bg-[var(--color-green-bg)] text-[var(--color-green)]">原神: {liuyaoResult.yuanShen}爻</span>
-                      <span className="px-2 py-1 rounded-md text-xs font-medium bg-[#fff8e8] text-[#b8860b]">忌神: {liuyaoResult.jiShen}爻</span>
-                    </div>
-
                     <div className="text-sm text-[var(--color-text-body)] leading-relaxed whitespace-pre-line">
                       {liuyaoText}
                     </div>

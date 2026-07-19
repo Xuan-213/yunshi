@@ -1,119 +1,194 @@
-// ====== 六爻解卦文案生成 ======
+// ====== 六爻解卦引擎 — 叙事风格，含周易原文爻辞 ======
 
 import type { LiuYaoResult } from "./zhuanggua";
+import { findGuaData, guaNumToName } from "./yaoci";
 
-/** 六十四卦简释（同梅花） */
-const GUA_MEANINGS: Record<string, string> = {
-  "乾为天":"纯阳之象，代表刚健有力。问事业有成、主动出击的格局。",
-  "坤为地":"纯阴之象，代表柔顺包容。守成为主，耐心等待结果。",
-  "水雷屯":"万物初生，创业艰难。开头不顺但坚持可成。",
-  "山水蒙":"蒙昧未开，需要学习了解。信息不足，先搞清楚情况。",
-  "水天需":"等待时机。不宜急躁，静候佳音。",
-  "天水讼":"争讼纠纷。宜和解而非对抗。",
-  "地水师":"统御之象。需要组织能力和领导力。",
-  "水地比":"亲附合作。人际关系良好，宜抱团取暖。",
-  "风天小畜":"小有积蓄。量变尚未质变，继续积累。",
-  "天泽履":"如履薄冰。谨慎行事，按规矩来。",
-  "地天泰":"天地通泰。上下沟通顺畅，万事顺遂。",
-  "天地否":"闭塞不通。有阻碍，宜等待转机。",
-  "天火同人":"志同道合。需要团队合作，团结力量大。",
-  "火天大有":"大有收获。成果丰硕，运势上扬。",
-  "地山谦":"谦逊低调。以退为进可得善果。",
-  "雷地豫":"轻松愉悦。但要防因享乐误事。",
-  "泽雷随":"顺势而为。不可强求，随遇而安。",
-  "山风蛊":"积弊待除。需要革新整顿。",
-  "地泽临":"好运将近。宜主动迎接机会。",
-  "风地观":"先观察再行动。不要贸然出手。",
-  "火雷噬嗑":"咬合突破。需要坚持才能突破障碍。",
-  "山火贲":"注重包装。外在形式也很重要。",
-  "山地剥":"局势转衰。宜收敛保守。",
-  "地雷复":"一阳来复。柳暗花明，转机将至。",
-  "天雷无妄":"不可妄为。顺其自然，勿存侥幸。",
-  "山天大畜":"能量充足。时机成熟可一鸣惊人。",
-  "山雷颐":"休养生息。不适合冒进。",
-  "泽风大过":"事情过了头。适可而止。",
-  "坎为水":"险阻重重。需要坚强意志。",
-  "离为火":"依附光明。需要找对方向。",
-  "泽山咸":"心有灵犀。利于感情和合作。",
-  "雷风恒":"长期稳定。不可急于求成。",
-  "天山遁":"退一步海阔天空。暂时退让。",
-  "雷天大壮":"力量充沛但不可莽撞。",
-  "火地晋":"晋升之象。稳步上升。",
-  "地火明夷":"光明受伤。韬光养晦。",
-  "风火家人":"家庭内部事务为宜。",
-  "火泽睽":"意见不合。需要沟通协调。",
-  "水山蹇":"遇到阻碍。寻求帮助。",
-  "雷水解":"困难将得到解决。",
-  "山泽损":"需要付出代价。有舍才有得。",
-  "风雷益":"有所收获。利于主动作为。",
-  "泽天夬":"需要果断决策。",
-  "天风姤":"可能遇到意想不到的人事。",
-  "泽地萃":"人群聚集。资源汇拢。",
-  "地风升":"稳步上升。积少成多。",
-  "泽水困":"困顿受阻。宜静不宜动。",
-  "水风井":"守成不变。水源不断。",
-  "泽火革":"需要改革创新。",
-  "火风鼎":"建立新秩序。",
-  "震为雷":"突发变化。冷静应对。",
-  "艮为山":"该停就停。不可强求。",
-  "风山渐":"稳步推进。不可一步登天。",
-  "雷泽归妹":"结合合并的趋势。",
-  "雷火丰":"丰收在望。防盛极而衰。",
-  "火山旅":"人生如旅。耐心走完全程。",
-  "巽为风":"灵活应变。借力而行。",
-  "兑为泽":"沟通顺畅。适合谈判。",
-  "风水涣":"可能有分离的趋势。",
-  "水泽节":"自我约束。适可而止。",
-  "风泽中孚":"诚信待人。以信取胜。",
-  "雷山小过":"小有过越。适可而止。",
-  "水火既济":"可以成功。但居安思危。",
-  "火水未济":"就差最后一把力。",
+/** 八卦万物类象 */
+const GUA_XIANG: Record<number, { name: string; nature: string; trait: string; meaning: string }> = {
+  1: { name: "乾", nature: "天", trait: "刚健", meaning: "为天，为圆满，为权威，为创造，也代表长辈、领导、审视" },
+  2: { name: "兑", nature: "泽", trait: "喜悦", meaning: "为泽，为口舌，为沟通，为愉悦，也代表少女、言说" },
+  3: { name: "离", nature: "火", trait: "光明", meaning: "为火，为光明，为文明，为美丽，也代表中女、明亮" },
+  4: { name: "震", nature: "雷", trait: "震动", meaning: "为雷，为行动，为震动，为决断，也代表长男、变动" },
+  5: { name: "巽", nature: "风", trait: "入微", meaning: "为风，为渗透，为顺从，为灵气，也代表长女、入微" },
+  6: { name: "坎", nature: "水", trait: "深陷", meaning: "为水，为险陷，为智慧，为流动，也代表中男、深藏" },
+  7: { name: "艮", nature: "山", trait: "静止", meaning: "为山，为止，为稳固，为阻碍，也代表少男、停止" },
+  8: { name: "坤", nature: "地", trait: "柔顺", meaning: "为地，为包容，为承载，为母性，也代表群众、顺从" },
 };
 
-export function interpretLiuyao(result: LiuYaoResult, question: string, questionType: string): string {
-  const benMeaning = GUA_MEANINGS[result.benGuaName] || "请结合具体卦象分析。";
-  const bianMeaning = result.bianGuaName !== result.benGuaName
-    ? GUA_MEANINGS[result.bianGuaName] || ""
-    : "";
+function describeGua(num: number): string {
+  return GUA_XIANG[num]?.meaning || "";
+}
+
+export function interpretLiuyao(
+  result: LiuYaoResult,
+  question: string,
+  digits: string,
+  shangNum: number,
+  xiaNum: number,
+  dongYao: number
+): string {
+  const aaa = digits.slice(0, 3);
+  const bbb = digits.slice(3, 6);
+  const shangGua = GUA_XIANG[shangNum] || GUA_XIANG[1];
+  const xiaGua = GUA_XIANG[xiaNum] || GUA_XIANG[1];
+  const guaData = findGuaData(result.benGuaName);
+  const bianData = findGuaData(result.bianGuaName);
+  const yaoIdx = dongYao - 1; // 0-indexed
+  const movingYao = guaData.yaoCi[yaoIdx];
 
   let text = "";
 
-  // 1. 卦象
-  text += `**卦象总览：**本卦「${result.benGuaName}」${benMeaning}\n\n`;
-  if (bianMeaning) {
-    text += `变卦「${result.bianGuaName}」：${bianMeaning}\n\n`;
-  }
+  // ====== 一、排卦 ======
+  text += `**一、排卦**\n\n`;
+  text += `数字 **${digits}**，前三位 **${aaa}**，后三位 **${bbb}**。\n\n`;
+  text += `**上卦：**${aaa} ÷ 8 余 **${shangNum}**。${shangNum} 是 **${shangGua.name}卦**。${shangGua.meaning}。\n\n`;
+  text += `**下卦：**${bbb} ÷ 8 余 **${xiaNum}**。${xiaNum} 是 **${xiaGua.name}卦**。${xiaGua.meaning}。\n\n`;
 
-  // 2. 用神分析
-  const ys = result.yongShen;
-  text += `**用神分析：**你问的是${questionType}，取「${ys.liuQin}爻」（${ys.position}）为用神。`;
-  text += `生用神者为原神（${result.yuanShen}），代表助力；`;
-  text += `克用神者为忌神（${result.jiShen}），代表阻力。\n\n`;
+  const shangXiaDesc = describeHexagramCombo(shangGua.name, xiaGua.name);
+  text += `${shangXiaDesc}\n\n`;
 
-  // 3. 世应
-  text += `**世应关系：**世爻（代表你）在${["","初","二","三","四","五","上"][result.shiYaoPos]}爻，`;
-  text += `应爻（代表事情/对方）在${["","初","二","三","四","五","上"][result.yingYaoPos]}爻。`;
-
-  if (result.shiYaoPos <= 3 && result.yingYaoPos >= 4) {
-    text += `世在內卦、应在外卦——事情的发展是由内而外的，主动权在你手中。\n\n`;
-  } else if (result.shiYaoPos >= 4 && result.yingYaoPos <= 3) {
-    text += `世在外卦、应在内卦——外部环境的影响比较大，你需要多关注外界变化。\n\n`;
+  text += `**动爻：**${aaa} + ${bbb} = ${parseInt(aaa) + parseInt(bbb)}，除以 6 余 **${dongYao}**。`;
+  text += `那就是 **第${dongYao}爻动**。这一动，`;
+  if (dongYao <= 3) {
+    text += `下卦${xiaGua.name}第${dongYao}爻由${dongYao % 2 === 1 ? "阳变阴" : "阴变阳"}，${xiaGua.name}就变成了${guaNumToName(xiaNum === 1 ? 8 : xiaNum === 8 ? 1 : xiaNum % 2 === 1 ? xiaNum + 1 : xiaNum - 1)}。`;
   } else {
-    text += `世应同在一卦——事情与你自身密切相关。\n\n`;
+    text += `上卦${shangGua.name}第${dongYao - 3}爻由${dongYao % 2 === 1 ? "阳变阴" : "阴变阳"}，${shangGua.name}就变成了${guaNumToName(shangNum === 1 ? 8 : shangNum === 8 ? 1 : shangNum % 2 === 1 ? shangNum + 1 : shangNum - 1)}。`;
+  }
+  text += `变卦就成了 **${result.bianGuaName}**。\n\n`;
+
+  // ====== 二、本卦分析 ======
+  text += `**二、本卦${guaData.name}**\n\n`;
+  text += `「${guaData.name}」是《周易》第 **${guaData.index}** 卦。\n\n`;
+  if (guaData.guaCi !== "（卦辞）") {
+    text += `**卦辞：**"${guaData.guaCi}"\n\n`;
+    text += `${guaData.guaCiCN}\n\n`;
+  }
+  if (guaData.tuanZhuan) {
+    text += `**《彖传》：**"${guaData.tuanZhuan.slice(0, 60)}…"\n\n`;
+  }
+  if (guaData.xiangZhuan) {
+    text += `**《大象》：**"${guaData.xiangZhuan}"\n\n`;
   }
 
-  // 4. 行动建议
-  const movingLines = result.lines.filter(l => l.isMoving);
-  if (movingLines.length > 0) {
-    const movingStrs = movingLines.map(l => `${l.position}（${l.liuQin}爻${l.shiYing ? " · " + l.shiYing : ""}）`);
-    text += `**动爻提示：**${movingStrs.join("、")}发动，这表示事情正在变化中。`;
-    if (movingLines.some(l => l.shiYing === "世")) {
-      text += `世爻动，说明变化由你自身引起——你的选择将决定事情走向。`;
-    }
-    text += `\n\n`;
+  text += `把这个卦放在你问的「${question}」上：${interpretBenGua(guaData.name, question)}\n\n`;
+
+  // ====== 三、动爻 ======
+  text += `**三、最关键的动爻——${movingYao.position}爻**\n\n`;
+  text += `动爻是这卦的魂。${guaData.name}卦${movingYao.position}爻的爻辞是这么说的：\n\n`;
+  text += `> **"${movingYao.text}"**\n\n`;
+
+  if (movingYao.textCN !== "（爻辞）") {
+    text += `${movingYao.textCN}\n\n`;
+  }
+  if (movingYao.xiaoXiang) {
+    text += `《小象》说："${movingYao.xiaoXiang}"\n\n`;
   }
 
-  text += `**给你的建议：**本次起卦问「${question}」。建议结合以上卦象信息，重点关注用神「${ys.liuQin}爻」的旺衰，以及动爻所带来的变化信号。如有疑问可以过段时间重新起卦确认。`;
+  text += `${interpretYaoCi(guaData.name, movingYao.position, movingYao.text, question)}\n\n`;
+
+  // ====== 四、变卦 ======
+  text += `**四、变卦${bianData.name}**\n\n`;
+  text += `变卦「${bianData.name}」是这问题的最终走向。${bianData.guaCiCN}\n\n`;
+  text += `${interpretBianGua(result.benGuaName, result.bianGuaName, question)}\n\n`;
+
+  // ====== 五、总结 ======
+  text += `**五、综合判断**\n\n`;
+  text += `${synthesize(result.benGuaName, result.bianGuaName, movingYao, question)}\n`;
 
   return text;
+}
+
+function describeHexagramCombo(shang: string, xia: string): string {
+  const combos: Record<string, string> = {
+    "乾乾": "上乾下乾，天上有天，这卦叫 **乾为天**。是《周易》第一卦，纯阳之象。",
+    "坤坤": "上坤下坤，地上有地，这卦叫 **坤为地**。是《周易》第二卦，纯阴之象。",
+    "坎震": "上坎下震，水在雷上，这卦叫 **水雷屯**。是《周易》第三卦，万物初生之象。",
+    "艮坎": "上艮下坎，山在水上，这卦叫 **山水蒙**。是《周易》第四卦，蒙昧待启之象。",
+    "坎乾": "上坎下乾，水在天上，这卦叫 **水天需**。是《周易》第五卦，等待时机的卦。",
+    "乾坎": "上乾下坎，天在水上，这卦叫 **天水讼**。是《周易》第六卦。讼，是争讼，是辩论，也是心里有话被堵着——需要小心着说。",
+    "坤坎": "上坤下坎，地在水上，这卦叫 **地水师**。是《周易》第七卦，出师征战之象。",
+    "坎坤": "上坎下坤，水在地上，这卦叫 **水地比**。是《周易》第八卦，亲附和合之象。",
+    "巽乾": "上巽下乾，风在天上，这卦叫 **风天小畜**。是《周易》第九卦，小有积蓄。",
+    "乾兑": "上乾下兑，天在泽上，这卦叫 **天泽履**。是《周易》第十卦，如履薄冰。",
+    "坤乾": "上坤下乾，地在天上，这卦叫 **地天泰**。是《周易》第十一卦，通泰之象。",
+    "乾坤": "上乾下坤，天在地上，这卦叫 **天地否**。是《周易》第十二卦，闭塞不通。",
+    "乾离": "上乾下离，天在火上，这卦叫 **天火同人**。是《周易》第十三卦，志同道合。",
+    "离乾": "上离下乾，火在天上，这卦叫 **火天大有**。是《周易》第十四卦，大有收获。",
+    "坤艮": "上坤下艮，地在山上，这卦叫 **地山谦**。是《周易》第十五卦，谦逊之象。",
+    "震坤": "上震下坤，雷在地上，这卦叫 **雷地豫**。是《周易》第十六卦，愉悦之象。",
+    "兑震": "上兑下震，泽在雷上，这卦叫 **泽雷随**。是《周易》第十七卦，随从之象。",
+    "艮巽": "上艮下巽，山在风上，这卦叫 **山风蛊**。是《周易》第十八卦，积弊待除。",
+    "坤兑": "上坤下兑，地在泽上，这卦叫 **地泽临**。是《周易》第十九卦，临近之象。",
+    "巽坤": "上巽下坤，风在地上，这卦叫 **风地观**。是《周易》第二十卦，观察之象。",
+    "离震": "上离下震，火在雷上，这卦叫 **火雷噬嗑**。是《周易》第二十一卦，咬合突破。",
+    "艮离": "上艮下离，山在火上，这卦叫 **山火贲**。是《周易》第二十二卦，文饰之象。",
+    "艮坤": "上艮下坤，山在地上，这卦叫 **山地剥**。是《周易》第二十三卦，剥落之象。",
+    "坤震": "上坤下震，地在雷上，这卦叫 **地雷复**。是《周易》第二十四卦，一阳来复。",
+    "乾震": "上乾下震，天在雷上，这卦叫 **天雷无妄**。是《周易》第二十五卦，不可妄为。",
+    "艮乾": "上艮下乾，山在天上，这卦叫 **山天大畜**。是《周易》第二十六卦，大积蓄。",
+    "艮震": "上艮下震，山在雷上，这卦叫 **山雷颐**。是《周易》第二十七卦，颐养之象。",
+    "兑巽": "上兑下巽，泽在风上，这卦叫 **泽风大过**。是《周易》第二十八卦，过度之象。",
+    "坎坎": "上坎下坎，水上有水，这卦叫 **坎为水**。是《周易》第二十九卦，险阻重重。",
+    "离离": "上离下离，火上有火，这卦叫 **离为火**。是《周易》第三十卦，依附光明。",
+    "离坤": "上离下坤，火在地上，这卦叫 **火地晋**。是《周易》第三十五卦，晋升之象。",
+    "坤离": "上坤下离，地在火上，这卦叫 **地火明夷**。是《周易》第三十六卦，光明受伤。",
+    "兑坎": "上兑下坎，泽在水上，这卦叫 **泽水困**。是《周易》第四十七卦，困顿之象。",
+    "离巽": "上离下巽，火在风上，这卦叫 **火风鼎**。是《周易》第五十卦，鼎新之象。",
+    "离坎": "上离下坎，火在水上，这卦叫 **火水未济**。是《周易》第六十四卦，未完成。",
+    "坎离": "上坎下离，水在火上，这卦叫 **水火既济**。是《周易》第六十三卦，既成。",
+  };
+  return combos[`${shang}${xia}`] || `上${shang}下${xia}，这卦叫 ${shang}${xia}。`;
+}
+
+function interpretBenGua(name: string, question: string): string {
+  const interpretations: Record<string, string> = {
+    "天水讼": `讼卦的核心是"心里有掂量"。把这个放在你问的「${question}」这件事上——这意味着对方（或这件事本身）不是漠不关心，而是在认真地权衡、比较、琢磨。脑子里有问号在转。这不是坏事——要是完全不关心，卦象该是"否"或"剥"，不是"讼"。"讼"说明被认真对待了。`,
+    "乾为天": `乾卦的核心是"创造"和"主动"。放在你问的「${question}」上——这告诉你现在是一个需要主动作为的时候。龙从深渊到天空，有六个阶段的成长。天行健，君子自强不息。`,
+    "火地晋": `晋卦是"日出地上"——太阳从地平线升起，越来越亮。放在你问的「${question}」上——事情正在稳步上升中，虽然速度不快，但方向是对的。`,
+  };
+  return interpretations[name] || `这个卦象放在你问的「${question}」这件事上，请结合卦辞和动爻来综合理解。`;
+}
+
+function interpretYaoCi(guaName: string, position: string, yaoci: string, question: string): string {
+  if (yaoci === "（爻辞）") {
+    return `这爻的具体含义，请你结合自己的情况用心感悟。卦不会骗人——爻动了，就是老天在给你指路。`;
+  }
+
+  // 针对特定爻辞的叙事化解读
+  if (guaName === "坤为地" && position === "六三") {
+    return `把这爻放在你问的「${question}」上——「含章可贞」：你肚子里有东西，有真本事，这是你的"章"。「或从王事，无成有终」：你去做这件事，可能不会立刻大功告成（无成），但会有好的结果（有终）。对方看到的，就是你这"含章"的底子——不是花架子，是有真东西的。他觉得你踏实、有积累、能做事。虽然可能某些方面还需打磨，但"终吉"——他对你的印象是正的。`;
+  }
+
+  if (guaName === "天水讼" && position === "六三") {
+    return `把这爻辞掰开了放在你问的「${question}」上——「食旧德」：旧德，是你过去攒下的经历、经验、本事。食，是靠这个吃饭。对方看的，就是你过去实实在在做过的事——那是最沉甸甸的东西。「贞厉，终吉」：你守得住，虽然过程有点难，但最终是吉的。「或从王事，无成」：可能还没完全达到最高要求，但这也不是否定——是对方在认真给你找位置。`;
+  }
+
+  return `把这爻放在你问的「${question}」上——老天通过这一爻告诉你：事情正在按照它该有的方式推进。爻辞里的每一个字，都是对你的回应。仔细品，你会在里面找到答案。`;
+}
+
+function interpretBianGua(benName: string, bianName: string, question: string): string {
+  if (benName === "天水讼" && bianName === "天风姤") {
+    return `从"讼"到"姤"——从心里掂量，到眼前一亮。姤是"天地相遇"，是天和地碰上了，万物都能被看清。对方从最初的权衡和审视，走到了"相遇"的感觉——他觉得跟你这件事是有缘分的，不是擦肩而过。风（巽）是能入的，是能渗透的——你这件事入了对方心里，他记住了。不一定当场拍板，但他把你放在了心上。`;
+  }
+  return `从「${benName}」到「${bianName}」——这是一个变化的信号。卦象告诉你，事情不会停留在当前的状态，它在往新的方向发展。请把握这个变化的趋势。`;
+}
+
+function synthesize(benName: string, bianName: string, movingYao: any, question: string): string {
+  const parts: string[] = [];
+
+  parts.push(`综合来看，关于「${question}」这件事：`);
+
+  if (benName === "天水讼" && bianName === "天风姤") {
+    parts.push(`对方认真掂量了（讼），最终是相遇的感觉（姤）。这不是否定，这是被认真对待了。脑子里那些问号，恰恰说明他把你当回事——不是随便翻翻就过去的。`);
+    parts.push(`动爻"${movingYao.text}"告诉我们——${movingYao.textCN}`);
+    parts.push(`把心放回肚子里。这一卦不坏。卦不会骗人。`);
+  } else if (benName === "坤为地" && bianName === "地雷复") {
+    parts.push(`当前是坤卦的柔顺和承载——事情还在积累阶段。但变卦是复卦，一阳来复——转机已经在地下萌动了。`);
+    parts.push(`动爻告诉你：${movingYao.textCN}`);
+  } else {
+    parts.push(`本卦「${benName}」是当前的状况，变卦「${bianName}」是事情发展的方向。`);
+    parts.push(`动爻是老天给你的最直接的提示：${movingYao.textCN}`);
+  }
+
+  return parts.join("\n\n");
 }
