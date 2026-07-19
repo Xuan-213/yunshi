@@ -1,0 +1,7 @@
+node_modules/
+.next/
+yunshi.db
+.env.local
+*.db
+*.db-shm
+*.db-wal
