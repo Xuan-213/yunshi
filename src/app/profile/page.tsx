@@ -5,31 +5,25 @@ import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
 
 export default function ProfilePage() {
-  const { profiles, activeProfile, loading, setActiveProfile, refreshProfiles } = useProfiles();
+  const { profiles, activeProfile, loading, setActiveProfile, saveProfile, removeProfile } = useProfiles();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0,
     gender: "male", longitude: 120,
   });
 
-  async function addProfile() {
+  function addProfile() {
     if (!form.name.trim()) return;
     const gan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][(form.year - 4) % 10];
     const zhi = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"][(form.year - 4) % 12];
-    const res = await fetch("/api/profiles", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, baziSummary: `${gan}${zhi}年 · ${form.gender === "male" ? "男" : "女"}` }),
+    saveProfile({
+      name: form.name, initial: form.name[0], color: "",
+      year: form.year, month: form.month, day: form.day,
+      hour: form.hour, minute: form.minute, gender: form.gender, longitude: form.longitude,
+      baziSummary: `${gan}${zhi}年 · ${form.gender === "male" ? "男" : "女"}`,
     });
-    if (res.ok) {
-      await refreshProfiles();
-      setShowForm(false);
-      setForm({ name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0, gender: "male", longitude: 120 });
-    }
-  }
-
-  async function deleteProfile(id: number) {
-    await fetch(`/api/profiles?id=${id}`, { method: "DELETE" });
-    refreshProfiles();
+    setShowForm(false);
+    setForm({ name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0, gender: "male", longitude: 120 });
   }
 
   const hourOptions = [
@@ -53,13 +47,22 @@ export default function ProfilePage() {
 
           {loading && <p className="text-sm text-[var(--color-text-dim)]">加载中...</p>}
 
+          {!loading && profiles.length === 0 && !showForm && (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-3">🌿</div>
+              <p className="text-sm text-[var(--color-text-dim)] mb-4">还没有命盘，录入你的出生信息开始使用。</p>
+            </div>
+          )}
+
           {profiles.map(p => (
             <div key={p.id} className="flex items-center gap-3.5 p-3.5 bg-white rounded-xl mb-2 shadow-[0_1px_3px_rgba(44,36,22,0.05)]">
-              <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${p.color} flex items-center justify-center text-white text-lg font-semibold flex-shrink-0`}>
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#d47070] flex items-center justify-center text-white text-lg font-semibold flex-shrink-0">
                 {p.initial}
               </div>
               <div className="flex-1">
-                <div className="font-semibold text-sm">{p.name} {activeProfile?.id === p.id && <span className="text-xs text-[var(--color-accent)] font-normal ml-1">● 当前</span>}</div>
+                <div className="font-semibold text-sm">
+                  {p.name} {activeProfile?.id === p.id && <span className="text-xs text-[var(--color-accent)] font-normal ml-1">● 当前</span>}
+                </div>
                 <div className="text-xs text-[var(--color-text-dim)] mt-0.5">
                   {p.year}/{p.month}/{p.day} · {p.gender === "male" ? "男" : "女"} · {p.baziSummary}
                 </div>
@@ -67,7 +70,7 @@ export default function ProfilePage() {
               {activeProfile?.id !== p.id && (
                 <button onClick={() => setActiveProfile(p.id)} className="text-xs text-[var(--color-accent)] border border-[var(--color-accent)] px-2 py-1 rounded-full hover:bg-[var(--color-accent-bg)] transition-colors mr-1">设为当前</button>
               )}
-              <button onClick={() => deleteProfile(p.id)} className="text-[var(--color-text-hint)] hover:text-[var(--color-accent)] text-sm px-2 py-1 transition-colors">删除</button>
+              <button onClick={() => removeProfile(p.id)} className="text-[var(--color-text-hint)] hover:text-[var(--color-accent)] text-sm px-2 py-1 transition-colors">删除</button>
             </div>
           ))}
 
@@ -129,12 +132,8 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button onClick={addProfile} className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">
-                  保存命盘
-                </button>
-                <button onClick={() => setShowForm(false)} className="px-6 py-2 border border-[var(--color-border)] rounded-full text-sm text-[var(--color-text-dim)] hover:bg-gray-50 transition-colors">
-                  取消
-                </button>
+                <button onClick={addProfile} className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">保存命盘</button>
+                <button onClick={() => setShowForm(false)} className="px-6 py-2 border border-[var(--color-border)] rounded-full text-sm text-[var(--color-text-dim)] hover:bg-gray-50 transition-colors">取消</button>
               </div>
             </div>
           )}

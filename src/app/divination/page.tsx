@@ -5,6 +5,7 @@ import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
 import { qiGua, qiGuaByTime, type MeiHuaResult } from "@/lib/meihua/qigua";
 import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
+import { addDivination } from "@/lib/store/local-store";
 
 type DivMode = "meihua" | "liuyao";
 type WyMethod = "time" | "image" | "text";
@@ -44,11 +45,7 @@ export default function DivinationPage() {
       });
     }
     setMeihuaResult(result);
-    // Save to DB
-    fetch("/api/divinations", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "meihua", question: question || "未指定", profileId: activeProfile?.id, input: { wyMethod, nums }, result }),
-    }).catch(() => {});
+    addDivination({ mode: "meihua", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType: "", input: { wyMethod, nums }, result });
   }
 
   /** 六爻起卦 */
@@ -63,11 +60,7 @@ export default function DivinationPage() {
       now.getFullYear(), now.getMonth() + 1, now.getDate()
     );
     setLiuyaoResult(result);
-    // Save to DB
-    fetch("/api/divinations", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "liuyao", question: question || "未指定", questionType, profileId: activeProfile?.id, input: { digits, shang, xia, dong }, result }),
-    }).catch(() => {});
+    addDivination({ mode: "liuyao", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType, input: { digits, shang, xia, dong }, result });
   }
 
   return (

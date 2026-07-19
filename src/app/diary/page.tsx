@@ -3,11 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
-
-interface DiaryEntry {
-  id: number; period: string; content: string;
-  createdAt: string;
-}
+import { getDiaries, addDiary, type DiaryEntry } from "@/lib/store/local-store";
 
 export default function DiaryPage() {
   const { activeProfile } = useProfiles();
@@ -17,22 +13,16 @@ export default function DiaryPage() {
   const [period, setPeriod] = useState("");
   const [content, setContent] = useState("");
 
-  const fetchEntries = useCallback(async () => {
-    try {
-      const res = await fetch("/api/diaries");
-      if (res.ok) setEntries(await res.json());
-    } catch { /* offline */ }
+  const fetchEntries = useCallback(() => {
+    setEntries(getDiaries());
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  async function submit() {
+  function submit() {
     if (!period.trim() || !content.trim()) return;
-    await fetch("/api/diaries", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ period, content, profileId: activeProfile?.id }),
-    });
+    addDiary({ period, content, profileId: activeProfile?.id ?? null });
     setPeriod(""); setContent(""); setShowForm(false);
     fetchEntries();
   }
