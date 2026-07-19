@@ -4,7 +4,9 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
 import { qiGua, qiGuaByTime, type MeiHuaResult } from "@/lib/meihua/qigua";
+import { interpretMeihua } from "@/lib/meihua/jiegua";
 import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
+import { interpretLiuyao } from "@/lib/liuyao/jiegua";
 import { addDivination } from "@/lib/store/local-store";
 
 type DivMode = "meihua" | "liuyao";
@@ -27,7 +29,9 @@ export default function DivinationPage() {
 
   // Results
   const [meihuaResult, setMeihuaResult] = useState<MeiHuaResult | null>(null);
+  const [meihuaText, setMeihuaText] = useState("");
   const [liuyaoResult, setLiuyaoResult] = useState<LiuYaoResult | null>(null);
+  const [liuyaoText, setLiuyaoText] = useState("");
 
   const now = new Date();
 
@@ -45,6 +49,8 @@ export default function DivinationPage() {
       });
     }
     setMeihuaResult(result);
+    const interpretation = interpretMeihua(result, question || "未指定");
+    setMeihuaText(interpretation);
     addDivination({ mode: "meihua", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType: "", input: { wyMethod, nums }, result });
   }
 
@@ -60,6 +66,8 @@ export default function DivinationPage() {
       now.getFullYear(), now.getMonth() + 1, now.getDate()
     );
     setLiuyaoResult(result);
+    const interpretation = interpretLiuyao(result, question || "未指定", questionType);
+    setLiuyaoText(interpretation);
     addDivination({ mode: "liuyao", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType, input: { digits, shang, xia, dong }, result });
   }
 
@@ -161,10 +169,9 @@ export default function DivinationPage() {
                           : "bg-[#fff8e8] text-[#b8860b]"
                       }`}>{meihuaResult.tiYong.relation} · {meihuaResult.tiYong.verdict.slice(0, 2)}</span>
                     </div>
-                    <p className="text-sm text-[var(--color-text-body)] leading-relaxed">
-                      <strong>体用分析：</strong>体卦为{meihuaResult.tiYong.ti.gua}（{meihuaResult.tiYong.ti.wx}，代表你），用卦为{meihuaResult.tiYong.yong.gua}（{meihuaResult.tiYong.yong.wx}，代表所问之事）。{meihuaResult.tiYong.relation}。<br /><br />
-                      <strong>白话解读：</strong>{meihuaResult.tiYong.verdict}
-                    </p>
+                    <div className="text-sm text-[var(--color-text-body)] leading-relaxed whitespace-pre-line">
+                      {meihuaText}
+                    </div>
                   </div>
                 </div>
               )}
@@ -235,10 +242,9 @@ export default function DivinationPage() {
                       <span className="px-2 py-1 rounded-md text-xs font-medium bg-[#fff8e8] text-[#b8860b]">忌神: {liuyaoResult.jiShen}爻</span>
                     </div>
 
-                    <p className="text-sm text-[var(--color-text-body)] leading-relaxed">
-                      <strong>吉凶判断：</strong>{liuyaoResult.verdict}<br /><br />
-                      <strong>白话解读：</strong>已根据你的问题类型（{questionType}）选取用神为<strong>{liuyaoResult.yongShen.liuQin}爻</strong>（{liuyaoResult.yongShen.position}）。请参考以上六爻装卦结果进行判断。
-                    </p>
+                    <div className="text-sm text-[var(--color-text-body)] leading-relaxed whitespace-pre-line">
+                      {liuyaoText}
+                    </div>
                   </div>
                 </div>
               )}
