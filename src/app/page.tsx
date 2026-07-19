@@ -47,9 +47,23 @@ export default function HomePage() {
 
   if (!fortune) return null;
 
+  // Dynamic year/month labels
+  const yearGanIdx = (now.getFullYear() - 4) % 10;
+  const yearZhiIdx = (now.getFullYear() - 4) % 12;
+  const yearGan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][yearGanIdx];
+  const yearZhi = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"][yearZhiIdx];
+  const yearName = `${yearGan}${yearZhi}年`;
+
+  const monthNum = now.getMonth() + 1;
+  const monthZhiIdx = (monthNum + 1) % 12; // 正月寅=1
+  const monthZhi = ["寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"][monthZhiIdx - 1];
+  const monthGanHead = (yearGanIdx % 5) * 2; // 年上起月
+  const monthGan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][(monthGanHead + (monthZhiIdx - 1)) % 10];
+  const monthName = `${monthGan}${monthZhi}月 (${monthNum}月)`;
+
   const miniCards = [
-    { type: "monthly" as const, label: "📆 流月运势 · 乙未月 (7月)", title: "平稳上升", desc: "财星渐旺，事业稳步推进。注意月中肠胃保养，宜清淡饮食。" },
-    { type: "yearly" as const,  label: "📆 流年运势 · 乙巳年",     title: "变动之年", desc: "天干乙木为官，地支巳火为印。事业有贵人提携，宜主动求变。" },
+    { type: "monthly" as const, label: `📆 流月运势 · ${monthName}`, title: "平稳上升", desc: "财星渐旺，事业稳步推进。注意月中肠胃保养，宜清淡饮食。" },
+    { type: "yearly" as const,  label: `📆 流年运势 · ${yearName}`,  title: "变动之年", desc: `天干${yearGan}${["木","木","火","火","土","土","金","金","水","水"][yearGanIdx]}为${yearGanIdx%2===0?"比":"印"}，宜主动求变。` },
   ];
 
   return (
