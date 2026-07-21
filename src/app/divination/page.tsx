@@ -9,6 +9,8 @@ import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
 import { interpretLiuyao } from "@/lib/liuyao/jiegua";
 import { aiLiuyaoInterpret, aiFollowUp } from "@/lib/ai/deepseek";
 import { addDivination } from "@/lib/store/local-store";
+import { useHistory } from "@/lib/store/history-context";
+import HistoryDrawer from "@/components/layout/history-drawer";
 
 type DivMode = "meihua" | "liuyao";
 type WyMethod = "time" | "image" | "text";
@@ -192,6 +194,7 @@ function ChatFollowUp({ context, onSend }: {
 // ====== Main Page ======
 export default function DivinationPage() {
   const { activeProfile } = useProfiles();
+  const { isOpen: histOpen, mode: histMode, open: openHist, close: closeHist } = useHistory();
   const [mode, setMode] = useState<DivMode>("meihua");
   const [wyMethod, setWyMethod] = useState<WyMethod>("time");
   const [question, setQuestion] = useState("");
@@ -265,13 +268,20 @@ export default function DivinationPage() {
             <h1 className="font-[var(--font-display)] text-xl font-semibold">起卦</h1>
           </div>
 
-          {/* Mode Switcher */}
-          <div className="inline-flex bg-[#f5f0e8] rounded-lg p-1 mb-5">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="inline-flex bg-[#f5f0e8] rounded-lg p-1">
             <button onClick={() => { setMode("meihua"); setMeihuaResult(null); }}
               className={`px-5 py-2 rounded-md text-sm font-medium transition-all duration-150 ${mode === "meihua" ? "bg-white text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-dim)]"}`}>🌸 梅花易数</button>
             <button onClick={() => { setMode("liuyao"); setLiuyaoResult(null); setLiuyaoAI(""); }}
               className={`px-5 py-2 rounded-md text-sm font-medium transition-all duration-150 ${mode === "liuyao" ? "bg-white text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-dim)]"}`}>🪙 六爻</button>
+            </div>
+            <button onClick={() => openHist(mode)} className="flex items-center gap-1.5 px-3 py-2 text-sm text-[var(--color-text-dim)] hover:text-[var(--color-accent)] bg-white border border-[var(--color-border)] rounded-lg transition-colors">
+              📋 历史
+            </button>
           </div>
+
+          <HistoryDrawer mode={histMode} isOpen={histOpen} onClose={closeHist} />
 
           {/* ====== MEIHUA ====== */}
           {mode === "meihua" && (

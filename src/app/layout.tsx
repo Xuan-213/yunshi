@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ProfileProvider } from "@/lib/store/profile-context";
+import { HistoryProvider } from "@/lib/store/history-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex">
-        <ProfileProvider>{children}</ProfileProvider>
+        <ProfileProvider><HistoryProvider>{children}</HistoryProvider></ProfileProvider>
       </body>
     </html>
   );
