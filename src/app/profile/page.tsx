@@ -1,18 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
+import { getDivinations, type DivinationRecord } from "@/lib/store/local-store";
 
 export default function ProfilePage() {
   const { profiles, activeProfile, loading, setActiveProfile, saveProfile, removeProfile } = useProfiles();
   const [showForm, setShowForm] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [keySaved, setKeySaved] = useState(false);
+  const [history, setHistory] = useState<DivinationRecord[]>([]);
   const [form, setForm] = useState({
     name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0,
     gender: "male", longitude: 120,
   });
+
+  const loadHistory = useCallback(() => {
+    setHistory(getDivinations());
+  }, []);
+
+  useEffect(() => { loadHistory(); }, [loadHistory]);
+
+  function deleteRecord(id: number) {
+    const all = JSON.parse(localStorage.getItem("yunshi_divinations") || "[]");
+    localStorage.setItem("yunshi_divinations", JSON.stringify(all.filter((r: any) => r.id !== id)));
+    loadHistory();
+  }
 
   function addProfile() {
     if (!form.name.trim()) return;
@@ -161,6 +175,52 @@ export default function ProfilePage() {
                 {keySaved ? "✅ 已保存" : "保存"}
               </button>
             </div>
+          </div>
+
+          {/* Divination History */}
+          <div className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="w-[3px] h-5 bg-[var(--color-accent)] rounded-sm" />
+              <h2 className="font-[var(--font-display)] text-xl font-semibold">卜卦历史</h2>
+              {history.length > 0 && <span className="text-xs text-[var(--color-text-dim)]">{history.length} 条记录</span>}
+            </div>
+
+            {history.length === 0 ? (
+              <div className="text-center py-12 bg-white border border-[var(--color-border)] rounded-xl">
+                <div className="text-3xl mb-2">🎲</div>
+                <p className="text-sm text-[var(--color-text-dim)]">还没有卜卦记录</p>
+                <p className="text-xs text-[var(--color-text-hint)] mt-1">去起卦页面开始第一次占卜</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {history.map((h) => (
+                  <div key={h.id} className="flex items-start justify-between p-4 bg-white rounded-xl shadow-[0_1px_3px_rgba(44,36,22,0.05)] group">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${h.mode === "meihua" ? "bg-[var(--color-accent-bg)] text-[var(--color-accent)]" : "bg-[#f5f0e8] text-[#8b7355]"}`}>
+                          {h.mode === "meihua" ? "梅花易数" : "六爻"}
+                        </span>
+                        <span className="text-xs text-[var(--color-text-hint)]">
+                          {new Date(h.createdAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div className="text-sm font-medium text-[var(--color-text-primary)] truncate">{h.question}</div>
+                      {h.result && (h.result as any).benGuaName && (
+                        <div className="text-xs text-[var(--color-text-dim)] mt-1">
+                          {(h.result as any).benGuaName} → {(h.result as any).bianGuaName}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => deleteRecord(h.id)}
+                      className="ml-3 text-[var(--color-text-hint)] hover:text-[var(--color-accent)] text-sm opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>
