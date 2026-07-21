@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
-import { paiPan, formatMingPan } from "@/lib/bazi/paiPan";
+import { paiPan } from "@/lib/bazi/paiPan";
+import { analyzeMingPan } from "@/lib/bazi/analysis";
 
 const WX_COLORS: Record<string, string> = {
   "金": "#e8c97a", "木": "#7ec97a", "水": "#7aa8c9", "火": "#c97a7a", "土": "#c9a87a",
@@ -31,17 +32,14 @@ export default function ProfilePage() {
     setForm({ name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0, gender: "male", longitude: 120 });
   }
 
-  function deleteProfile(id: number) {
-    removeProfile(id);
-  }
-
-  // Calculate bazi chart for active profile
   const chart = activeProfile ? paiPan({
     year: activeProfile.year, month: activeProfile.month, day: activeProfile.day,
     hour: activeProfile.hour, minute: activeProfile.minute || 0,
     gender: activeProfile.gender as "male" | "female",
     longitude: activeProfile.longitude || 120,
   }) : null;
+
+  const analysis = chart ? analyzeMingPan(chart) : null;
 
   const hourOptions = [
     { v: 0, label: "子时 (23:00-01:00)" },{ v: 1, label: "丑时 (01:00-03:00)" },
@@ -58,7 +56,7 @@ export default function ProfilePage() {
       <main className="flex-1 px-8 py-8 overflow-y-auto">
         <div className="w-full">
 
-          {/* Header: dropdown + actions */}
+          {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <div className="flex items-center gap-3">
               <span className="w-[3px] h-5 bg-[var(--color-accent)] rounded-sm" />
@@ -66,18 +64,13 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1" />
             {profiles.length > 0 && (
-              <select
-                className="px-4 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-white outline-none focus:border-[var(--color-accent)]"
-                value={activeProfile?.id || ""}
-                onChange={e => setActiveProfile(parseInt(e.target.value))}
-              >
-                {profiles.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} · {p.baziSummary}</option>
-                ))}
+              <select className="px-4 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-white outline-none focus:border-[var(--color-accent)]"
+                value={activeProfile?.id || ""} onChange={e => setActiveProfile(parseInt(e.target.value))}>
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.name} · {p.baziSummary}</option>)}
               </select>
             )}
             {activeProfile && (
-              <button onClick={() => deleteProfile(activeProfile.id)} className="text-sm text-[var(--color-text-hint)] hover:text-[var(--color-accent)] transition-colors">删除当前</button>
+              <button onClick={() => removeProfile(activeProfile.id)} className="text-sm text-[var(--color-text-hint)] hover:text-[var(--color-accent)] transition-colors">删除</button>
             )}
             <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">
               {showForm ? "取消" : "+ 新建"}
@@ -140,7 +133,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* No profile */}
+          {/* Empty state */}
           {!loading && !activeProfile && (
             <div className="text-center py-20">
               <div className="text-5xl mb-4">🌿</div>
@@ -149,100 +142,117 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Chart display */}
-          {chart && (
+          {/* Full analysis */}
+          {chart && analysis && (
             <div className="flex gap-8">
-              {/* Left: 排盘 */}
-              <div className="flex-1 space-y-4">
-                {/* 四柱卡片 */}
+              {/* ====== LEFT: 排盘 ====== */}
+              <div className="flex-1 space-y-4" style={{ flex: "0 0 55%" }}>
+                {/* 四柱 */}
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { label: "年柱", p: chart.bazi.year },
-                    { label: "月柱", p: chart.bazi.month },
-                    { label: "日柱", p: chart.bazi.day },
-                    { label: "时柱", p: chart.bazi.hour },
-                  ].map(({ label, p }) => (
-                    <div key={label} className="bg-white border border-[var(--color-border)] rounded-xl p-4 text-center">
-                      <div className="text-xs text-[var(--color-text-dim)] mb-2">{label}</div>
+                    { label: "年柱", p: chart.bazi.year, ss: chart.shiShen.year },
+                    { label: "月柱", p: chart.bazi.month, ss: chart.shiShen.month },
+                    { label: "日柱", p: chart.bazi.day, ss: "日主" },
+                    { label: "时柱", p: chart.bazi.hour, ss: chart.shiShen.hour },
+                  ].map(({ label, p, ss }) => (
+                    <div key={label} className={`bg-white border rounded-xl p-4 text-center ${label === "日柱" ? "border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]" : "border-[var(--color-border)]"}`}>
+                      <div className="text-[10px] text-[var(--color-text-dim)] mb-2 tracking-wider uppercase">{label}</div>
                       <div className="text-2xl font-bold font-[var(--font-display)] mb-1">{p.ganZhi}</div>
                       <div className="text-xs text-[var(--color-text-dim)]">{p.gan} · {p.zhi}</div>
-                      <div className="text-[10px] text-[var(--color-gold)] mt-1">{label === "日柱" ? "日主" : chart.shiShen[label === "年柱" ? "year" : label === "月柱" ? "month" : label === "时柱" ? "hour" : "day"]}</div>
+                      <div className="text-[10px] mt-1.5 px-2 py-0.5 rounded-full inline-block bg-[#fdfaf4] text-[var(--color-gold)] font-medium">{ss}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* 日主 + 五行 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white border border-[var(--color-border)] rounded-xl p-4 text-center">
-                    <div className="text-xs text-[var(--color-text-dim)] mb-1">日主</div>
-                    <div className="text-xl font-bold font-[var(--font-display)]">{chart.dayMaster}</div>
-                    <div className="text-sm text-[var(--color-text-dim)]">{chart.dayMasterWx}命</div>
-                  </div>
-                  <div className="bg-white border border-[var(--color-border)] rounded-xl p-4">
-                    <div className="text-xs text-[var(--color-text-dim)] mb-2 text-center">五行分布</div>
-                    <div className="space-y-1.5">
-                      {(["金","木","水","火","土"] as const).map(wx => (
-                        <div key={wx} className="flex items-center gap-2">
-                          <span className="text-xs w-6 text-right text-[var(--color-text-dim)]">{wx}</span>
-                          <div className="flex-1 h-2 bg-[#f3efe9] rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${(chart.wuXingCount[wx]/8)*100}%`, background: WX_COLORS[wx] }} />
-                          </div>
-                          <span className="text-xs text-[var(--color-text-dim)] w-3">{chart.wuXingCount[wx]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 大运 */}
+                {/* 地支藏干 */}
                 <div className="bg-white border border-[var(--color-border)] rounded-xl p-4">
-                  <div className="text-xs text-[var(--color-text-dim)] mb-3">大运 ({chart.daYun.startAge}岁起运)</div>
-                  <div className="flex flex-wrap gap-2">
-                    {chart.daYun.pillars.map((dz, i) => (
-                      <span key={i} className="px-3 py-1.5 bg-[#fdfcfa] border border-[var(--color-border-light)] rounded-lg text-sm font-medium">
-                        {dz}
-                        <span className="text-[10px] text-[var(--color-text-hint)] ml-1.5">{chart.daYun.startAge + i*10}岁</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: 解读 */}
-              <div className="w-80 flex-shrink-0 space-y-4">
-                <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
-                  <h3 className="font-[var(--font-display)] text-sm font-semibold mb-3">日主解读</h3>
-                  <p className="text-sm text-[var(--color-text-body)] leading-relaxed">
-                    {chart.dayMaster}为{chart.dayMasterWx}命。{chart.dayMasterWx === "金" ? "金主义，刚毅果断，重义气。" :
-                     chart.dayMasterWx === "木" ? "木主仁，温和正直，有生长之力。" :
-                     chart.dayMasterWx === "水" ? "水主智，灵活善变，智慧深沉。" :
-                     chart.dayMasterWx === "火" ? "火主礼，热情主动，文明有礼。" :
-                     "土主信，厚重诚实，承载万物。"}
-                  </p>
-                </div>
-
-                <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
-                  <h3 className="font-[var(--font-display)] text-sm font-semibold mb-3">十神</h3>
-                  <div className="space-y-1.5 text-sm">
-                    {Object.entries(chart.shiShen).map(([pillar, ss]) => (
-                      <div key={pillar} className="flex justify-between">
-                        <span className="text-[var(--color-text-dim)]">{pillar === "year" ? "年柱" : pillar === "month" ? "月柱" : pillar === "day" ? "日柱" : "时柱"}</span>
-                        <span className="font-medium">{ss}</span>
+                  <div className="text-xs text-[var(--color-text-dim)] mb-3 font-semibold tracking-wider">地支藏干</div>
+                  <div className="grid grid-cols-4 gap-3 text-center text-sm">
+                    {chart.cangGan.map((cg, i) => (
+                      <div key={i}>
+                        <span className="text-[10px] text-[var(--color-text-hint)]">{["年","月","日","时"][i]}</span>
+                        <div className="font-medium mt-0.5">{cg.join(" ")}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
-                  <h3 className="font-[var(--font-display)] text-sm font-semibold mb-3">五行分析</h3>
-                  <p className="text-sm text-[var(--color-text-body)] leading-relaxed">
-                    {(() => {
-                      const maxWx = Object.entries(chart.wuXingCount).sort((a, b) => b[1] - a[1])[0];
-                      const minWx = Object.entries(chart.wuXingCount).sort((a, b) => a[1] - b[1])[0];
-                      return `${maxWx[0]}最旺（${maxWx[1]}个），${minWx[0]}最弱（${minWx[1]}个）。${maxWx[0] === chart.dayMasterWx ? "日主得令，自身强旺。" : "日主需补" + chart.dayMasterWx + "，可借助大运流年之力。"}`;
-                    })()}
-                  </p>
+                {/* 用神 + 日主 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white border border-[var(--color-border)] rounded-xl p-5 text-center">
+                    <div className="text-xs text-[var(--color-text-dim)] mb-1">日主</div>
+                    <div className="text-2xl font-bold font-[var(--font-display)]">{chart.dayMaster}</div>
+                    <div className="text-sm text-[var(--color-text-dim)]">{chart.dayMasterWx}命</div>
+                  </div>
+                  <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
+                    <div className="text-xs text-[var(--color-text-dim)] mb-2 text-center tracking-wider">用神 / 忌神</div>
+                    <div className="flex gap-3 justify-center text-sm">
+                      <span className="px-3 py-1 rounded-full bg-[var(--color-green-bg)] text-[var(--color-green)] font-semibold">{analysis.yongShen.shen}</span>
+                      <span className="px-3 py-1 rounded-full bg-[var(--color-accent-bg)] text-[var(--color-accent)] font-semibold">{analysis.jiShen}</span>
+                    </div>
+                    <div className="text-xs text-[var(--color-text-dim)] mt-2 text-center">{analysis.yongShen.reason.slice(0, 50)}…</div>
+                  </div>
                 </div>
+
+                {/* 五行分布 */}
+                <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
+                  <div className="text-xs text-[var(--color-text-dim)] mb-4 font-semibold tracking-wider">五行力量分布</div>
+                  <div className="space-y-2">
+                    {(["金","木","水","火","土"] as const).map(wx => {
+                      const pct = Math.round((chart.wuXingCount[wx] / Object.values(chart.wuXingCount).reduce((a, b) => a + b, 0)) * 100);
+                      return (
+                        <div key={wx} className="flex items-center gap-3">
+                          <span className="text-xs w-8 text-right text-[var(--color-text-dim)]">{wx}</span>
+                          <div className="flex-1 h-3 bg-[#f3efe9] rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: WX_COLORS[wx] }} />
+                          </div>
+                          <span className="text-xs text-[var(--color-text-dim)] w-12 text-right">{chart.wuXingCount[wx]} ({pct}%)</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 大运 */}
+                <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
+                  <div className="text-xs text-[var(--color-text-dim)] mb-3 font-semibold tracking-wider">大运 ({chart.daYun.startAge}岁起运)</div>
+                  <div className="flex flex-wrap gap-2">
+                    {chart.daYun.pillars.map((dz, i) => {
+                      const age = chart.daYun.startAge + i * 10;
+                      return (
+                        <div key={i} className="px-3 py-2 bg-[#fdfcfa] border border-[var(--color-border-light)] rounded-lg text-center min-w-[64px]">
+                          <div className="text-sm font-semibold">{dz}</div>
+                          <div className="text-[10px] text-[var(--color-text-hint)]">{age}-{age+9}岁</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* ====== RIGHT: 解读 ====== */}
+              <div className="flex-1 space-y-5" style={{ flex: "0 0 45%" }}>
+                {/* 性格 */}
+                <div className="bg-white border border-[var(--color-border)] rounded-xl p-5">
+                  <h3 className="font-[var(--font-display)] text-sm font-semibold mb-3">性格特征</h3>
+                  <p className="text-sm text-[var(--color-text-body)] leading-[1.85]">{analysis.personality}</p>
+                </div>
+
+                {/* 总览 */}
+                <div className="bg-[#fdfaf4] border border-[var(--color-gold-light)] rounded-xl p-5">
+                  <h3 className="font-[var(--font-display)] text-sm font-semibold mb-3 text-[var(--color-gold)]">命局总览</h3>
+                  <p className="text-sm text-[var(--color-text-body)] leading-[1.85]">{analysis.overall}</p>
+                  <p className="text-xs text-[var(--color-text-dim)] mt-3 leading-relaxed">{analysis.yongShen.advice}</p>
+                </div>
+
+                {/* 五维度 */}
+                {[analysis.career, analysis.wealth, analysis.love, analysis.health].map(dim => (
+                  <div key={dim.title} className="bg-white border border-[var(--color-border)] rounded-xl p-5">
+                    <h3 className="font-[var(--font-display)] text-sm font-semibold mb-1">{dim.title}</h3>
+                    <p className="text-xs text-[var(--color-gold)] mb-2 font-medium">{dim.summary}</p>
+                    <p className="text-sm text-[var(--color-text-body)] leading-[1.85]">{dim.detail}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}

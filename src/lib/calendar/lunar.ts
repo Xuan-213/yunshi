@@ -70,11 +70,23 @@ export function solarToLunar(year: number, month: number, day: number) {
   };
 }
 
-/** 公历日期转日柱干支 */
+/** 公历日期转日柱干支 (基数公式法, 1900-2099) */
 export function getDayGanZhi(year: number, month: number, day: number): string {
-  // 基于已知参考点: 1900-01-01 = 甲戌日 (索引10)
-  const days = daysBetween(1900, 1, 1, year, month, day);
-  return SIXTY_JIA_ZI[(days + 10) % 60];
+  const tail = year % 100;
+  // 世纪基数
+  const base = year < 2000
+    ? (tail + 3) * 5 + 55 + Math.floor((tail - 1) / 4)
+    : (tail + 7) * 5 + 15 + Math.floor((tail + 19) / 4);
+
+  // 当年第几天
+  const monthDays = [0,31,28,31,30,31,30,31,31,30,31,30,31];
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  if (isLeap) monthDays[2] = 29;
+  let dayOfYear = day;
+  for (let m = 1; m < month; m++) dayOfYear += monthDays[m];
+
+  const idx = (base % 60 + dayOfYear) % 60; // 1-indexed (甲子=1)
+  return SIXTY_JIA_ZI[(idx - 1 + 60) % 60];
 }
 
 /** 获取时辰的地支索引 (0-11) */
