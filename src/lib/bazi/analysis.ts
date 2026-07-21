@@ -43,20 +43,22 @@ export function analyzeMingPan(mp: MingPan): FullAnalysis {
     // 身强 → 喜克泄耗
     const keOptions = WX_STRONG.filter(w => WU_XING_KE[w] === dmWx);
     const xieOptions = WX_STRONG.filter(w => WU_XING_SHENG[dmWx] === w);
-    const consumeOption = WX_STRONG.filter(w => WU_XING_KE[dmWx] === w);
+    const shen: WuXing = keOptions[0] || xieOptions[0] || "水";
+    const industries: Record<string, string> = { "水": "物流、贸易、传媒", "火": "文化、教育、科技", "金": "金融、法律、管理", "木": "教育、医疗、艺术", "土": "房地产、建筑、农业" };
     yongShen = {
-      shen: keOptions[0] || xieOptions[0] || "水",
-      reason: `日主${dm}(${dmWx})偏强（占${Math.round(dmPct*100)}%），宜用官杀克制或食伤泄秀。${keOptions.length > 0 ? `取${keOptions[0]}为用神，${WU_XING_KE[keOptions[0]] === dmWx ? "克" : "泄"}日主之旺气` : "取食伤泄秀为用"}`,
-      advice: `${keOptions.length > 0 ? `多接触${keOptions[0]}相关的行业和人事物${keOptions[0] === "水" ? "，如物流、贸易、传媒" : keOptions[0] === "火" ? "，如文化、教育、科技" : keOptions[0] === "金" ? "，如金融、法律、管理" : keOptions[0] === "木" ? "，如教育、医疗、艺术" : "，如房地产、建筑、农业"}。` : ""}大运走到${yongShen.shen}旺之时最为得力。`,
+      shen,
+      reason: `日主${dm}(${dmWx})偏强（占${Math.round(dmPct*100)}%），宜用官杀克制或食伤泄秀。取${shen}为用神。`,
+      advice: `多接触${shen}相关的行业和人事物，如${industries[shen] || ""}。大运走到${shen}旺之时最为得力。`,
     };
     jiShen = WX_STRONG.find(w => WU_XING_SHENG[w] === dmWx) || dmWx;
   } else {
     // 身弱 → 喜生扶
     const shengOptions = WX_STRONG.filter(w => WU_XING_SHENG[w] === dmWx);
+    const shen: WuXing = shengOptions[0] || dmWx;
     yongShen = {
-      shen: shengOptions[0] || dmWx,
-      reason: `日主${dm}(${dmWx})偏弱（占${Math.round(dmPct*100)}%），宜用印星生扶或比劫帮身。${shengOptions.length > 0 ? `取${shengOptions[0]}为用神，生扶日主` : "取比劫帮身为用"}`,
-      advice: `多接触${yongShen.shen}相关的行业和人事物。大运走到${yongShen.shen}旺之时贵人运最强。`,
+      shen,
+      reason: `日主${dm}(${dmWx})偏弱（占${Math.round(dmPct*100)}%），宜用印星生扶或比劫帮身。取${shen}为用神，生扶日主。`,
+      advice: `多接触${shen}相关的行业和人事物。大运走到${shen}旺之时贵人运最强。`,
     };
     jiShen = WX_STRONG.find(w => WU_XING_KE[w] === dmWx) || "火";
   }

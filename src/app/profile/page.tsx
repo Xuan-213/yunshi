@@ -5,6 +5,7 @@ import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
 import { paiPan } from "@/lib/bazi/paiPan";
 import { analyzeMingPan } from "@/lib/bazi/analysis";
+import { cityToLon } from "@/lib/calendar/cities";
 
 const WX_COLORS: Record<string, string> = {
   "金": "#e8c97a", "木": "#7ec97a", "水": "#7aa8c9", "火": "#c97a7a", "土": "#c9a87a",
@@ -15,21 +16,22 @@ export default function ProfilePage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0,
-    gender: "male" as "male" | "female", longitude: 120,
+    gender: "male" as "male" | "female", city: "北京",
   });
 
   function addProfile() {
     if (!form.name.trim()) return;
     const gan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][(form.year - 4) % 10];
     const zhi = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"][(form.year - 4) % 12];
+    const lon = cityToLon(form.city);
     saveProfile({
       name: form.name, initial: form.name[0], color: "",
       year: form.year, month: form.month, day: form.day,
-      hour: form.hour, minute: form.minute, gender: form.gender, longitude: form.longitude,
+      hour: form.hour, minute: form.minute, gender: form.gender, longitude: lon,
       baziSummary: `${gan}${zhi}年 · ${form.gender === "male" ? "男" : "女"}`,
     });
     setShowForm(false);
-    setForm({ name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0, gender: "male", longitude: 120 });
+    setForm({ name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0, gender: "male", city: "北京" });
   }
 
   const chart = activeProfile ? paiPan({
@@ -123,10 +125,10 @@ export default function ProfilePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">出生地经度</label>
-                  <input type="number" step="0.1" className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-[#fdfcfa] outline-none focus:border-[var(--color-accent)]"
-                    value={form.longitude} onChange={e => setForm({ ...form, longitude: parseFloat(e.target.value) || 120 })} />
-                  <p className="text-xs text-[var(--color-text-hint)] mt-1">北京=120, 成都=104, 上海=121.5</p>
+                  <label className="block text-sm font-medium mb-1">出生地</label>
+                  <input className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-[#fdfcfa] outline-none focus:border-[var(--color-accent)]"
+                    value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} placeholder="如：北京、成都、上海" />
+                  <p className="text-xs text-[var(--color-text-hint)] mt-1">输入城市名，系统自动匹配经纬度计算真太阳时</p>
                 </div>
               </div>
               <button onClick={addProfile} className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">保存命盘</button>
