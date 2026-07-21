@@ -157,7 +157,7 @@ export default function HomePage() {
             <span className="w-[3px] h-5 bg-[var(--color-accent)] rounded-sm" />
             <h2 className="font-[var(--font-display)] text-xl font-semibold">详细解读</h2>
           </div>
-          <DimensionCards dimensions={fortune.dimensions.map(d => ({ ...d, analysis: <>{d.analysis}</> }))} />
+          <DimensionCards date={`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`} dimensions={fortune.dimensions.map(d => ({ ...d, analysis: <>{d.analysis}</> }))} />
         </div>
       </main>
 

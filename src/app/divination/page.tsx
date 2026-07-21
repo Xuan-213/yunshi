@@ -9,6 +9,30 @@ import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
 import { interpretLiuyao } from "@/lib/liuyao/jiegua";
 import { addDivination } from "@/lib/store/local-store";
 
+/** Bold text parser */
+function Bold({ children }: { children: string }) {
+  const parts = children.split(/(\*\*.*?\*\*)/g);
+  return <>{parts.map((p, i) => p.startsWith("**") && p.endsWith("**")
+    ? <strong key={i} className="text-[var(--color-text-primary)]">{p.slice(2, -2)}</strong>
+    : p)}</>;
+}
+
+/** Simple markdown renderer */
+function Md({ text }: { text: string }) {
+  return (
+    <div className="text-sm text-[var(--color-text-body)] leading-relaxed space-y-3">
+      {text.split("\n").map((line, i) => {
+        if (line.trim() === "") return <div key={i} className="h-2" />;
+        if (line.startsWith("---")) return <hr key={i} className="border-[var(--color-border)]" />;
+        if (line.startsWith("## ")) return <h3 key={i} className="font-[var(--font-display)] text-lg font-semibold text-[var(--color-text-primary)] mt-6 mb-2"><Bold>{line.slice(3)}</Bold></h3>;
+        if (line.startsWith("### ")) return <h4 key={i} className="font-semibold text-base text-[var(--color-text-primary)] mt-4 mb-1"><Bold>{line.slice(4)}</Bold></h4>;
+        if (line.startsWith("> ")) return <blockquote key={i} className="border-l-[3px] border-[var(--color-accent)] pl-4 text-[var(--color-text-dim)] italic"><Bold>{line.slice(2)}</Bold></blockquote>;
+        return <p key={i} className="whitespace-pre-line"><Bold>{line}</Bold></p>;
+      })}
+    </div>
+  );
+}
+
 type DivMode = "meihua" | "liuyao";
 type WyMethod = "time" | "image" | "text";
 
@@ -170,9 +194,7 @@ export default function DivinationPage() {
                           : "bg-[#fff8e8] text-[#b8860b]"
                       }`}>{meihuaResult.tiYong.relation} · {meihuaResult.tiYong.verdict.slice(0, 2)}</span>
                     </div>
-                    <div className="text-sm text-[var(--color-text-body)] leading-relaxed whitespace-pre-line">
-                      {meihuaText}
-                    </div>
+                    <Md text={meihuaText} />
                   </div>
                 </div>
               )}
@@ -231,9 +253,7 @@ export default function DivinationPage() {
                       <div className="text-2xl font-bold mb-2">{liuyaoResult.benGuaName} → {liuyaoResult.bianGuaName}</div>
                       <div className="text-sm text-[var(--color-text-dim)]">第{["","一","二","三","四","五","六"][dongYaoNum]}爻动</div>
                     </div>
-                    <div className="text-sm text-[var(--color-text-body)] leading-relaxed whitespace-pre-line">
-                      {liuyaoText}
-                    </div>
+                    <Md text={liuyaoText} />
                   </div>
                 </div>
               )}
