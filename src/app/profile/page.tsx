@@ -7,6 +7,8 @@ import { useProfiles } from "@/lib/store/profile-context";
 export default function ProfilePage() {
   const { profiles, activeProfile, loading, setActiveProfile, saveProfile, removeProfile } = useProfiles();
   const [showForm, setShowForm] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [keySaved, setKeySaved] = useState(false);
   const [form, setForm] = useState({
     name: "", year: 1990, month: 1, day: 1, hour: 12, minute: 0,
     gender: "male", longitude: 120,
@@ -143,14 +145,22 @@ export default function ProfilePage() {
               <span className="text-sm">🔑</span>
               <h3 className="font-[var(--font-display)] text-base font-semibold">AI 解卦设置</h3>
             </div>
-            <p className="text-xs text-[var(--color-text-dim)] mb-3">填入 DeepSeek API Key 后，六爻解卦将由 AI 生成个性化解读。</p>
-            <input
-              type="password"
-              className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-[#fdfcfa] outline-none focus:border-[var(--color-accent)]"
-              placeholder="sk-..."
-              defaultValue={typeof window !== "undefined" ? localStorage.getItem("ds_key") || "" : ""}
-              onChange={e => localStorage.setItem("ds_key", e.target.value.trim())}
-            />
+            <p className="text-xs text-[var(--color-text-dim)] mb-3">填入 DeepSeek API Key 后，六爻解卦将由「奶奶」AI 生成温暖的个性化解读。</p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                className="flex-1 px-3 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-[#fdfcfa] outline-none focus:border-[var(--color-accent)]"
+                placeholder="sk-..."
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+              />
+              <button
+                onClick={() => { localStorage.setItem("ds_key", apiKey.trim()); setKeySaved(true); setTimeout(() => setKeySaved(false), 2000); }}
+                className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors"
+              >
+                {keySaved ? "✅ 已保存" : "保存"}
+              </button>
+            </div>
           </div>
         </div>
       </main>
