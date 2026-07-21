@@ -7,13 +7,22 @@ import type { GuaName } from "@/lib/meihua/constants";
 import { getDayGanZhi } from "@/lib/calendar/lunar";
 
 // 八卦 3-bit 编码 (bottom-to-top, yang=1)
+// Bottom-to-top: bit0=初爻(bottom), bit1=中爻, bit2=上爻(top); yang=1, yin=0
+// bit0=底爻, bit1=中爻, bit2=上爻; yang=1, yin=0
+// e.g. 兑☱(底yang中yang上yin)=bit0:1,bit1:1,bit2:0=binary:011=3
 const GUA_BITS: Record<GuaName, number> = {
-  "乾": 0b111, "兑": 0b110, "离": 0b101, "震": 0b100,
-  "巽": 0b011, "坎": 0b010, "艮": 0b001, "坤": 0b000,
+  "乾": 0b111, // ☰ 底阳中阳上阳 → 111=7
+  "兑": 0b011, // ☱ 底阳中阳上阴 → 011=3
+  "离": 0b101, // ☲ 底阳中阴上阳 → 101=5
+  "震": 0b001, // ☳ 底阳中阴上阴 → 001=1
+  "巽": 0b110, // ☴ 底阴中阳上阳 → 110=6
+  "坎": 0b010, // ☵ 底阴中阳上阴 → 010=2
+  "艮": 0b100, // ☶ 底阴中阴上阳 → 100=4
+  "坤": 0b000, // ☷ 底阴中阴上阴 → 000=0
 };
 const BITS_TO_GUA: Record<number, GuaName> = {
-  0b111: "乾", 0b110: "兑", 0b101: "离", 0b100: "震",
-  0b011: "巽", 0b010: "坎", 0b001: "艮", 0b000: "坤",
+  7: "乾", 3: "兑", 5: "离", 1: "震",
+  6: "巽", 2: "坎", 4: "艮", 0: "坤",
 };
 
 /** 翻转六爻中的一根线（1-indexed, 从下往上）*/

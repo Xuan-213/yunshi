@@ -7,6 +7,7 @@ import { qiGua, qiGuaByTime, type MeiHuaResult } from "@/lib/meihua/qigua";
 import { interpretMeihua } from "@/lib/meihua/jiegua";
 import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
 import { interpretLiuyao } from "@/lib/liuyao/jiegua";
+import { aiLiuyaoInterpret } from "@/lib/ai/deepseek";
 import { addDivination } from "@/lib/store/local-store";
 
 /** Bold text parser */
@@ -55,6 +56,8 @@ export default function DivinationPage() {
   const [meihuaText, setMeihuaText] = useState("");
   const [liuyaoResult, setLiuyaoResult] = useState<LiuYaoResult | null>(null);
   const [liuyaoText, setLiuyaoText] = useState("");
+  const [liuyaoAI, setLiuyaoAI] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const [dongYaoNum, setDongYaoNum] = useState(3);
 
   const now = new Date();
@@ -79,7 +82,7 @@ export default function DivinationPage() {
   }
 
   /** 六爻起卦 */
-  function doLiuyao() {
+  async function doLiuyao() {
     const dStr = digits.join("");
     const aaa = parseInt(dStr.slice(0, 3)) || 0;
     const bbb = parseInt(dStr.slice(3, 6)) || 0;
@@ -92,8 +95,25 @@ export default function DivinationPage() {
     );
     setLiuyaoResult(result);
     setDongYaoNum(dong);
-    setLiuyaoText(interpretLiuyao(result, question || "未指定", dStr, shang, xia, dong));
-    addDivination({ mode: "liuyao", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType: "", input: { digits: dStr, shang, xia, dong }, result });
+    // Template fallback first (instant)
+    setLiuyaoText(interpretLiuyao(result, question || "这件事", dStr, shang, xia, dong));
+
+    // AI interpretation (async)
+    const guaData = (await import("@/lib/liuyao/yaoci")).findGuaData(result.benGuaName);
+    const movingYao = guaData.yaoCi[dong - 1];
+    setAiLoading(true);
+    try {
+      const aiText = await aiLiuyaoInterpret(
+        question || "这件事", dStr, shang, xia, dong,
+        result.benGuaName, result.bianGuaName,
+        guaData.guaCi, guaData.guaCiCN, guaData.xiangZhuan,
+        movingYao.position, movingYao.text, movingYao.textCN,
+      );
+      if (aiText) setLiuyaoAI(aiText);
+    } catch { /* AI unavailable, use template */ }
+    setAiLoading(false);
+
+    addDivination({ mode: "liuyao", question: question || "这件事", profileId: activeProfile?.id ?? null, questionType: "", input: { digits: dStr, shang, xia, dong }, result });
   }
 
   return (
@@ -253,7 +273,12 @@ export default function DivinationPage() {
                       <div className="text-2xl font-bold mb-2">{liuyaoResult.benGuaName} → {liuyaoResult.bianGuaName}</div>
                       <div className="text-sm text-[var(--color-text-dim)]">第{["","一","二","三","四","五","六"][dongYaoNum]}爻动</div>
                     </div>
-                    <Md text={liuyaoText} />
+                    {aiLoading && !liuyaoAI && (
+                      <div className="flex items-center gap-2 text-sm text-[var(--color-text-dim)] py-4">
+                        <span className="animate-pulse">🪙</span> 奶奶正在给你解卦...
+                      </div>
+                    )}
+                    <Md text={liuyaoAI || liuyaoText} />
                   </div>
                 </div>
               )}

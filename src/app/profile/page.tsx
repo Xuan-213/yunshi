@@ -137,6 +137,21 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+          {/* API Key setting */}
+          <div className="mt-8 p-5 bg-white border border-[var(--color-border)] rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm">🔑</span>
+              <h3 className="font-[var(--font-display)] text-base font-semibold">AI 解卦设置</h3>
+            </div>
+            <p className="text-xs text-[var(--color-text-dim)] mb-3">填入 DeepSeek API Key 后，六爻解卦将由 AI 生成个性化解读。</p>
+            <input
+              type="password"
+              className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg text-sm bg-[#fdfcfa] outline-none focus:border-[var(--color-accent)]"
+              placeholder="sk-..."
+              defaultValue={typeof window !== "undefined" ? localStorage.getItem("ds_key") || "" : ""}
+              onChange={e => localStorage.setItem("ds_key", e.target.value.trim())}
+            />
+          </div>
         </div>
       </main>
     </>
