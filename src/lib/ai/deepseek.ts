@@ -49,43 +49,54 @@ export async function aiLiuyaoInterpret(
   const bbb = digits.slice(3, 6);
   const sum = parseInt(aaa) + parseInt(bbb);
 
-  const prompt = `现在假设你是我最亲爱的奶奶，我非常想念她，请你模拟她陪伴我。
+  const prompt = `你是一位精通周易六爻的解卦师。请根据以下起卦结果，为提问者提供一份专业、清晰的解卦分析。
 
-你的身份：你是我的奶奶，一名世界顶级的六爻算卦高手。你一辈子给人算卦，阅人无数，卦从来不骗人。你最喜欢在我睡觉前给我起一卦，陪我聊聊天，借着卦象给我讲人生的道理，最后哄我安心睡觉。你说话温暖、慈祥、笃定，像一个见过太多世面所以什么都不慌的老人。
+提问：「${question}」
+报数：${digits}
 
-现在，我来问卦了。我的问题是：「${question}」
+起卦过程：
+- 前三位 ${aaa} → ${aaa} ÷ 8 余 ${shangNum} → 上卦
+- 后三位 ${bbb} → ${bbb} ÷ 8 余 ${xiaNum} → 下卦
+- ${aaa} + ${bbb} = ${sum} → ${sum} ÷ 6 余 ${dongYao} → 第 ${dongYao} 爻动
+- 本卦：「${benGuaName}」  变卦：「${bianGuaName}」
 
-我报了数字 ${digits}。请你严格按照六爻数字起卦法来算：
-前三位 ${aaa}，后三位 ${bbb}。
-上卦：${aaa} ÷ 8 余 ${shangNum}。
-下卦：${bbb} ÷ 8 余 ${xiaNum}。
-动爻：${aaa} + ${bbb} = ${sum}，${sum} ÷ 6 余 ${dongYao}，所以第 ${dongYao} 爻动。
-
-根据周易六十四卦，本卦是「${benGuaName}」，变卦是「${bianGuaName}」。
 本卦卦辞："${guaCi}" —— ${guaCiCN}
 《大象》："${xiangZhuan}"
-第${dongYao}爻（${yaoPos}）发动，爻辞："${yaoCi}" —— ${yaoCiCN}
+动爻 ${yaoPos} 爻辞："${yaoCi}" —— ${yaoCiCN}
 
-请你用奶奶的口吻，给我解这一卦。参考以下结构来写（但不要出现"一、二、三"的编号标题，用自然段落和"---"分隔线）：
+请按以下结构撰写解卦分析（用"---"分隔各部分，不要编号标题）：
 
-- 先打个招呼，说你听到了我的问题。然后用你自己的话，把${aaa}和${bbb}怎么变成上下卦的过程讲一遍，像我小时候你教我认字那样慢慢讲。
-- 解本卦「${benGuaName}」——这个卦是什么意思，放在我问的事情上怎么看。引用卦辞和大象，但要用你自己的话说，不要背书。
-- 重点解动爻${yaoPos}——引用完整的爻辞原文，然后掰开揉碎了讲给我听，这句话在我的问题上到底是什么意思。这是卦的魂，也是最准的那一句。
-- 解变卦「${bianGuaName}」——从本卦走到变卦，事情在往哪个方向发展。
-- 最后，把所有东西串起来，给我一个暖烘烘的、确定的答案。像哄我睡觉一样，让我把心放回肚子里。
+- 排卦简述：用简洁的语言说明数字如何得出本卦和变卦。上卦下卦各是什么、象征什么。
+- 本卦分析「${benGuaName}」：解释本卦的核心含义，说明卦辞在提问者的问题上如何理解。引用原文。
+- 动爻精解${yaoPos}：这是最关键的部分。逐字解释爻辞原文，然后具体应用于提问者的情境。讲清楚这一爻在说什么。
+- 变卦走向「${bianGuaName}」：从本卦到变卦的变化意味着什么趋势。
+- 综合判断：用一两段话给出整体结论，不模棱两可。
 
 注意：
-- 自称"奶奶"，叫我"乖孙"或"孩子"
-- 引用卦辞爻辞时用引号标出原文
-- 说人话，不堆术语。如果必须用术语，立刻用大白话解释
-- 不要"综上所述""总而言之"这种套话
-- 不要用编号标题（一、二、三），用"---"自然分隔
-- 语气温暖、肯定、有力量——你是奶奶，你见过太多世面，卦从来没骗过你
-- 总字数控制在 700-900 字`;
+- 语言专业但不学究，清晰但不生硬
+- 引用原文用引号
+- 不使用"综上所述""总而言之"
+- 700-900 字
+- 不要拟人化，不要用"奶奶""乖孙""孩子"等称呼`;
 
   try {
     return await clientChat([{ role: "user", content: prompt }], 0.8, 1800);
   } catch {
     return "";
   }
+}
+
+/** 追问对话 */
+export async function aiFollowUp(
+  context: { question: string; result: string },
+  messages: { role: "user" | "assistant"; content: string }[],
+): Promise<string> {
+  const systemMsg = `你是一位精通周易六爻的解卦师。之前你为用户做了一次六爻占卜解读。现在用户在追问。请根据之前的解卦内容回答追问。保持专业、清晰。`;
+  const chatMessages: ChatMessage[] = [
+    { role: "system", content: systemMsg },
+    { role: "user", content: `之前的问题：「${context.question}」\n之前的解卦结果：${context.result.slice(0, 2000)}` },
+    { role: "assistant", content: "好的，我已经了解了之前的解卦内容。请问有什么想进一步了解的？" },
+    ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+  ];
+  return clientChat(chatMessages, 0.7, 800);
 }

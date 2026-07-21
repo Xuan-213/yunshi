@@ -7,81 +7,186 @@ import { qiGua, qiGuaByTime, type MeiHuaResult } from "@/lib/meihua/qigua";
 import { interpretMeihua } from "@/lib/meihua/jiegua";
 import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
 import { interpretLiuyao } from "@/lib/liuyao/jiegua";
-import { aiLiuyaoInterpret } from "@/lib/ai/deepseek";
+import { aiLiuyaoInterpret, aiFollowUp } from "@/lib/ai/deepseek";
 import { addDivination } from "@/lib/store/local-store";
 
-/** Bold text parser */
-function Bold({ children }: { children: string }) {
-  const parts = children.split(/(\*\*.*?\*\*)/g);
-  return <>{parts.map((p, i) => p.startsWith("**") && p.endsWith("**")
-    ? <strong key={i} className="text-[var(--color-text-primary)]">{p.slice(2, -2)}</strong>
-    : p)}</>;
-}
+type DivMode = "meihua" | "liuyao";
+type WyMethod = "time" | "image" | "text";
+type ChatMsg = { role: "user" | "assistant"; content: string };
 
-/** Simple markdown renderer */
-function Md({ text }: { text: string }) {
+// ====== Magazine-style renderer ======
+
+const SECTION_NUMS = ["壹", "贰", "叁", "肆", "伍"];
+
+function MagazineResult({ text }: { text: string }) {
+  if (!text) return null;
+  const sections = text.split("\n---").map(s => s.trim()).filter(Boolean);
+
   return (
-    <div className="text-sm text-[var(--color-text-body)] leading-relaxed space-y-3">
-      {text.split("\n").map((line, i) => {
-        if (line.trim() === "") return <div key={i} className="h-2" />;
-        if (line.startsWith("---")) return <hr key={i} className="border-[var(--color-border)]" />;
-        if (line.startsWith("## ")) return <h3 key={i} className="font-[var(--font-display)] text-lg font-semibold text-[var(--color-text-primary)] mt-6 mb-2"><Bold>{line.slice(3)}</Bold></h3>;
-        if (line.startsWith("### ")) return <h4 key={i} className="font-semibold text-base text-[var(--color-text-primary)] mt-4 mb-1"><Bold>{line.slice(4)}</Bold></h4>;
-        if (line.startsWith("> ")) return <blockquote key={i} className="border-l-[3px] border-[var(--color-accent)] pl-4 text-[var(--color-text-dim)] italic"><Bold>{line.slice(2)}</Bold></blockquote>;
-        return <p key={i} className="whitespace-pre-line"><Bold>{line}</Bold></p>;
+    <div className="max-w-[680px] space-y-10">
+      {sections.map((section, idx) => {
+        const lines = section.split("\n");
+        const firstLine = lines[0] || "";
+        const title = firstLine.startsWith("## ") ? firstLine.slice(3) : "";
+        const body = (title ? lines.slice(1) : lines).join("\n");
+
+        return (
+          <section key={idx}>
+            {/* Section number + title */}
+            {title && (
+              <div className="flex items-baseline gap-3 mb-5">
+                <span className="font-[var(--font-display)] text-sm text-[var(--color-gold)] tracking-widest">
+                  {SECTION_NUMS[idx] || ""}
+                </span>
+                <h2 className="font-[var(--font-display)] text-lg font-semibold text-[var(--color-text-primary)]">
+                  {title}
+                </h2>
+              </div>
+            )}
+
+            {/* Body with quote parsing */}
+            <div className="space-y-4 pl-7">
+              {body.split("\n").map((line, i) => {
+                const t = line.trim();
+                if (!t) return <div key={i} className="h-3" />;
+                if (t.startsWith("> ")) {
+                  return (
+                    <blockquote key={i} className="mx-0 my-5 px-6 py-5 rounded-xl
+                      bg-[#fdfaf4] border-l-[3px] border-[var(--color-gold)]
+                      font-[var(--font-display)] text-[17px] leading-[1.7] text-[var(--color-text-primary)] italic"
+                    >
+                      {parseBold(t.slice(2))}
+                    </blockquote>
+                  );
+                }
+                return (
+                  <p key={i} className="text-[15px] leading-[1.85] text-[var(--color-text-body)]">
+                    {parseBold(t)}
+                  </p>
+                );
+              })}
+            </div>
+          </section>
+        );
       })}
     </div>
   );
 }
 
-type DivMode = "meihua" | "liuyao";
-type WyMethod = "time" | "image" | "text";
+function parseBold(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith("**") && p.endsWith("**")
+      ? <strong key={i} className="text-[var(--color-text-primary)] font-semibold">{p.slice(2, -2)}</strong>
+      : p
+  );
+}
 
+// ====== Chat component for 追问 ======
+function ChatFollowUp({ context, onSend }: {
+  context: { question: string; result: string };
+  onSend: (msg: string) => Promise<string>;
+}) {
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function send() {
+    if (!input.trim() || loading) return;
+    const msg = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { role: "user", content: msg }]);
+    setLoading(true);
+    try {
+      const reply = await onSend(msg);
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "抱歉，追问暂时无法响应，请稍后再试。" }]);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="max-w-[680px] mt-10 pt-8 border-t border-[var(--color-border)]">
+      <h3 className="font-[var(--font-display)] text-base font-semibold mb-5 text-[var(--color-text-primary)]">
+        继续追问
+      </h3>
+
+      {/* Messages */}
+      {messages.length > 0 && (
+        <div className="space-y-4 mb-5">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : ""}`}>
+              {m.role === "assistant" && (
+                <span className="w-7 h-7 rounded-full bg-[var(--color-accent-bg)] text-[var(--color-accent)] flex items-center justify-center text-xs flex-shrink-0 mt-0.5">易</span>
+              )}
+              <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                m.role === "user"
+                  ? "bg-[var(--color-accent)] text-white rounded-br-md"
+                  : "bg-[#f8f5f0] text-[var(--color-text-body)] rounded-bl-md"
+              }`}>
+                {m.content}
+              </div>
+              {m.role === "user" && (
+                <span className="w-7 h-7 rounded-full bg-[var(--color-text-dim)] text-white flex items-center justify-center text-xs flex-shrink-0 mt-0.5">我</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="flex gap-2">
+        <input
+          className="flex-1 px-4 py-2.5 border border-[var(--color-border)] rounded-full text-sm bg-white outline-none focus:border-[var(--color-accent)] transition-colors"
+          placeholder="对解卦结果有疑问？在这里追问..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && send()}
+        />
+        <button
+          onClick={send}
+          disabled={loading || !input.trim()}
+          className="px-5 py-2.5 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {loading ? "…" : "发送"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ====== Main Page ======
 export default function DivinationPage() {
   const { activeProfile } = useProfiles();
   const [mode, setMode] = useState<DivMode>("meihua");
   const [wyMethod, setWyMethod] = useState<WyMethod>("time");
   const [question, setQuestion] = useState("");
-
-  // 梅花: 3 numbers
   const [nums, setNums] = useState(["3", "8", "5"]);
-  // 文字外应
   const [waiyingText, setWaiyingText] = useState("");
-
-  // 六爻: 6 digits
   const [digits, setDigits] = useState(["3","8","5","7","2","4"]);
-
-  // Results
   const [meihuaResult, setMeihuaResult] = useState<MeiHuaResult | null>(null);
   const [meihuaText, setMeihuaText] = useState("");
   const [liuyaoResult, setLiuyaoResult] = useState<LiuYaoResult | null>(null);
-  const [liuyaoText, setLiuyaoText] = useState("");
   const [liuyaoAI, setLiuyaoAI] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [dongYaoNum, setDongYaoNum] = useState(3);
+  const [liuyaoContext, setLiuyaoContext] = useState<{ question: string; result: string }>({ question: "", result: "" });
 
   const now = new Date();
 
-  /** 梅花起卦 */
   function doMeihua() {
     let result: MeiHuaResult;
     if (wyMethod === "time") {
-      const inp = qiGuaByTime(now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours());
-      result = qiGua(inp);
+      result = qiGua(qiGuaByTime(now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours()));
     } else {
-      result = qiGua({
-        shangGuaNum: parseInt(nums[0]) || 3,
-        xiaGuaNum: parseInt(nums[1]) || 8,
-        dongYaoNum: parseInt(nums[2]) || 5,
-      });
+      result = qiGua({ shangGuaNum: parseInt(nums[0]) || 3, xiaGuaNum: parseInt(nums[1]) || 8, dongYaoNum: parseInt(nums[2]) || 5 });
     }
     setMeihuaResult(result);
-    const interpretation = interpretMeihua(result, question || "未指定");
-    setMeihuaText(interpretation);
+    setMeihuaText(interpretMeihua(result, question || "未指定"));
     addDivination({ mode: "meihua", question: question || "未指定", profileId: activeProfile?.id ?? null, questionType: "", input: { wyMethod, nums }, result });
   }
 
-  /** 六爻起卦 */
   async function doLiuyao() {
     const dStr = digits.join("");
     const aaa = parseInt(dStr.slice(0, 3)) || 0;
@@ -89,16 +194,11 @@ export default function DivinationPage() {
     const shang = aaa % 8 || 8;
     const xia = bbb % 8 || 8;
     const dong = (aaa + bbb) % 6 || 6;
-    const result = zhuangGua(
-      shang, xia, dong, "财运",
-      now.getFullYear(), now.getMonth() + 1, now.getDate()
-    );
+    const result = zhuangGua(shang, xia, dong, "财运", now.getFullYear(), now.getMonth() + 1, now.getDate());
     setLiuyaoResult(result);
     setDongYaoNum(dong);
-    // Template fallback first (instant)
-    setLiuyaoText(interpretLiuyao(result, question || "这件事", dStr, shang, xia, dong));
+    setLiuyaoAI("");
 
-    // AI interpretation (async)
     const guaData = (await import("@/lib/liuyao/yaoci")).findGuaData(result.benGuaName);
     const movingYao = guaData.yaoCi[dong - 1];
     setAiLoading(true);
@@ -109,11 +209,17 @@ export default function DivinationPage() {
         guaData.guaCi, guaData.guaCiCN, guaData.xiangZhuan,
         movingYao.position, movingYao.text, movingYao.textCN,
       );
-      if (aiText) setLiuyaoAI(aiText);
-    } catch { /* AI unavailable, use template */ }
+      if (aiText) {
+        setLiuyaoAI(aiText);
+        setLiuyaoContext({ question: question || "这件事", result: aiText });
+      }
+    } catch { /* fallback to template */ }
     setAiLoading(false);
-
     addDivination({ mode: "liuyao", question: question || "这件事", profileId: activeProfile?.id ?? null, questionType: "", input: { digits: dStr, shang, xia, dong }, result });
+  }
+
+  async function handleFollowUp(msg: string) {
+    return aiFollowUp(liuyaoContext, [{ role: "user", content: msg }]);
   }
 
   return (
@@ -130,11 +236,11 @@ export default function DivinationPage() {
           <div className="inline-flex bg-[#f5f0e8] rounded-lg p-1 mb-5">
             <button onClick={() => { setMode("meihua"); setMeihuaResult(null); }}
               className={`px-5 py-2 rounded-md text-sm font-medium transition-all duration-150 ${mode === "meihua" ? "bg-white text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-dim)]"}`}>🌸 梅花易数</button>
-            <button onClick={() => { setMode("liuyao"); setLiuyaoResult(null); }}
+            <button onClick={() => { setMode("liuyao"); setLiuyaoResult(null); setLiuyaoAI(""); }}
               className={`px-5 py-2 rounded-md text-sm font-medium transition-all duration-150 ${mode === "liuyao" ? "bg-white text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-dim)]"}`}>🪙 六爻</button>
           </div>
 
-          {/* ====== 梅花易数 ====== */}
+          {/* ====== MEIHUA ====== */}
           {mode === "meihua" && (
             <div>
               <div className="mb-4">
@@ -168,18 +274,16 @@ export default function DivinationPage() {
               {wyMethod === "image" && (
                 <div className="bg-white border border-[var(--color-border)] rounded-xl p-6 text-center mb-4">
                   <div className="w-full h-40 bg-[#fdfcfa] border-2 border-dashed border-[var(--color-border)] rounded-xl flex items-center justify-center flex-col cursor-pointer text-[var(--color-text-hint)]">
-                    <span className="text-4xl">📷</span><span className="mt-2">点击上传图片</span><span className="text-xs mt-1">AI 将直接观物取象</span>
+                    <span className="text-4xl">📷</span><span className="mt-2">点击上传图片</span>
                   </div>
                 </div>
               )}
               {wyMethod === "text" && (
                 <div className="mb-4">
                   <textarea className="w-full px-4 py-3 border border-[var(--color-border)] rounded-lg text-sm bg-[#fdfcfa] outline-none focus:border-[var(--color-accent)] transition-colors resize-none" rows={3}
-                    placeholder="描述你观察到的事物或现象，例如：刚才听到三声鸟叫，一阵风吹过，看到窗外的树叶落了三片..."
-                    value={waiyingText} onChange={e => setWaiyingText(e.target.value)} />
+                    placeholder="描述你观察到的事物或现象..." value={waiyingText} onChange={e => setWaiyingText(e.target.value)} />
                 </div>
               )}
-
               {wyMethod !== "time" && wyMethod !== "image" && (
                 <div className="flex gap-4 justify-center mb-4">
                   {nums.map((n, i) => (
@@ -191,37 +295,31 @@ export default function DivinationPage() {
                   ))}
                 </div>
               )}
+              <button onClick={doMeihua} className="inline-flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">🪙 开始解卦</button>
 
-              <button onClick={doMeihua}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors">🪙 开始解卦</button>
-
-              {/* ---- Result ---- */}
               {meihuaResult && (
-                <div className="mt-8">
-                  <div className="flex items-center gap-3 text-xs text-[var(--color-text-hint)] mb-4"><span className="flex-1 h-px bg-[var(--color-border)]" />解卦结果<span className="flex-1 h-px bg-[var(--color-border)]" /></div>
-                  <div className="bg-white border border-[var(--color-border)] rounded-xl p-6">
-                    <div className="text-center mb-6">
-                      <div className="flex justify-center gap-10 mb-4">
-                        <div><div className="text-xs text-[var(--color-text-dim)] mb-1">本卦</div><div className="text-xl font-bold">{meihuaResult.benGua.name}</div></div>
-                        {meihuaResult.huGua && <div><div className="text-xs text-[var(--color-text-dim)] mb-1">互卦</div><div className="text-xl font-bold">{meihuaResult.huGua.name}</div></div>}
-                        <div><div className="text-xs text-[var(--color-text-dim)] mb-1">变卦</div><div className="text-xl font-bold">{meihuaResult.bianGua.name}</div></div>
-                      </div>
-                      <span className={`inline-block px-4 py-1.5 rounded-2xl text-sm font-semibold ${
-                        meihuaResult.tiYong.relation === "用生体" || meihuaResult.tiYong.relation === "体用比和"
-                          ? "bg-[var(--color-green-bg)] text-[var(--color-green)]"
-                          : meihuaResult.tiYong.relation === "用克体"
-                          ? "bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
-                          : "bg-[#fff8e8] text-[#b8860b]"
-                      }`}>{meihuaResult.tiYong.relation} · {meihuaResult.tiYong.verdict.slice(0, 2)}</span>
+                <div className="mt-8 max-w-[680px]">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--color-accent-bg)] text-[var(--color-accent)] text-sm font-medium mb-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />第{meihuaResult.dongYao}爻动
                     </div>
-                    <Md text={meihuaText} />
+                    <h2 className="font-[var(--font-display)] text-2xl font-bold">
+                      {meihuaResult.benGua.name}
+                      <span className="text-[var(--color-text-dim)] mx-2">→</span>
+                      {meihuaResult.bianGua.name}
+                    </h2>
+                  </div>
+                  <div className="prose-p:text-[15px] prose-p:leading-[1.85] prose-p:text-[var(--color-text-body)] space-y-3">
+                    {meihuaText.split("\n").map((line, i) => (
+                      <p key={i} className="text-[15px] leading-[1.85] text-[var(--color-text-body)]">{line}</p>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* ====== 六爻 ====== */}
+          {/* ====== LIUYAO ====== */}
           {mode === "liuyao" && (
             <div>
               <div className="mb-4">
@@ -233,8 +331,7 @@ export default function DivinationPage() {
               <label className="block text-sm font-semibold mb-3">输入 6 位数字</label>
               <input
                 className="w-full px-4 py-3 border-2 border-[var(--color-border)] rounded-xl text-2xl text-center font-semibold bg-white tracking-[0.3em] outline-none focus:border-[var(--color-accent)] transition-colors"
-                maxLength={6}
-                placeholder="441486"
+                maxLength={6} placeholder="446584"
                 value={digits.join("")}
                 onChange={e => {
                   const val = e.target.value.replace(/\D/g, "").slice(0, 6);
@@ -245,41 +342,44 @@ export default function DivinationPage() {
                 const dStr = digits.join("");
                 const a = parseInt(dStr.slice(0, 3)) || 0;
                 const b = parseInt(dStr.slice(3, 6)) || 0;
-                const s = a % 8 || 8;
-                const x = b % 8 || 8;
-                const d = (a + b) % 6 || 6;
+                const s = a % 8 || 8; const x = b % 8 || 8; const d = (a + b) % 6 || 6;
                 const bagua = ["","乾 ☰","兑 ☱","离 ☲","震 ☳","巽 ☴","坎 ☵","艮 ☶","坤 ☷"];
                 return dStr.length === 6 ? (
-                  <p className="text-sm text-center mt-3 mb-2 leading-relaxed">
-                    前三位 <strong>{a}</strong> ÷ 8 余 <strong>{s}</strong> → <strong>{bagua[s]}</strong>（上卦）
-                    &nbsp;·&nbsp;
-                    后三位 <strong>{b}</strong> ÷ 8 余 <strong>{x}</strong> → <strong>{bagua[x]}</strong>（下卦）
-                    &nbsp;·&nbsp;
-                    <strong>{a}+{b}</strong> ÷ 6 余 <strong>{d}</strong> → 第 <strong>{d}</strong> 爻动
-                  </p>
-                ) : (
-                  <p className="text-xs text-[var(--color-text-hint)] text-center mt-2">输入 6 位数字后自动显示卦象预览</p>
-                );
+                  <p className="text-sm text-center mt-3">前 {a} ÷ 8 余 {s} → <strong>{bagua[s]}</strong>（上卦） · 后 {b} ÷ 8 余 {x} → <strong>{bagua[x]}</strong>（下卦） · {a}+{b} ÷ 6 余 {d} → <strong>第{d}爻动</strong></p>
+                ) : <p className="text-xs text-[var(--color-text-hint)] text-center mt-2">输入 6 位数字后自动显示卦象预览</p>;
               })()}
 
               <button onClick={doLiuyao}
                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-accent-deep)] transition-colors mt-3">🪙 开始解卦</button>
 
-              {/* ---- Result ---- */}
+              {/* ---- LIUYAO RESULT ---- */}
               {liuyaoResult && (
                 <div className="mt-8">
-                  <div className="bg-white border border-[var(--color-border)] rounded-xl p-6">
-                    <div className="text-center mb-6 pb-4 border-b border-[var(--color-border-light)]">
-                      <div className="text-2xl font-bold mb-2">{liuyaoResult.benGuaName} → {liuyaoResult.bianGuaName}</div>
-                      <div className="text-sm text-[var(--color-text-dim)]">第{["","一","二","三","四","五","六"][dongYaoNum]}爻动</div>
+                  {/* Header */}
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--color-accent-bg)] text-[var(--color-accent)] text-sm font-medium mb-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />第{["","一","二","三","四","五","六"][dongYaoNum]}爻动
                     </div>
-                    {aiLoading && !liuyaoAI && (
-                      <div className="flex items-center gap-2 text-sm text-[var(--color-text-dim)] py-4">
-                        <span className="animate-pulse">🪙</span> 奶奶正在给你解卦...
-                      </div>
-                    )}
-                    <Md text={liuyaoAI || liuyaoText} />
+                    <h2 className="font-[var(--font-display)] text-2xl font-bold">
+                      {liuyaoResult.benGuaName}
+                      <span className="text-[var(--color-text-dim)] mx-2">→</span>
+                      {liuyaoResult.bianGuaName}
+                    </h2>
                   </div>
+
+                  {/* Loading */}
+                  {aiLoading && !liuyaoAI && (
+                    <div className="flex flex-col items-center gap-3 py-16 text-[var(--color-text-dim)]">
+                      <div className="w-8 h-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm">正在解卦中...</p>
+                    </div>
+                  )}
+
+                  {/* AI Magazine Result */}
+                  {liuyaoAI && <MagazineResult text={liuyaoAI} />}
+
+                  {/* Follow-up chat */}
+                  {liuyaoAI && <ChatFollowUp context={liuyaoContext} onSend={handleFollowUp} />}
                 </div>
               )}
             </div>
