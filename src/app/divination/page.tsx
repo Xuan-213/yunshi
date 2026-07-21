@@ -107,31 +107,64 @@ function ChatFollowUp({ context, onSend }: {
   }
 
   return (
-    <div className="max-w-[680px] mt-10 pt-8 border-t border-[var(--color-border)]">
-      <h3 className="font-[var(--font-display)] text-base font-semibold mb-5 text-[var(--color-text-primary)]">
-        继续追问
-      </h3>
+    <div className="mt-10 pt-8 border-t border-[var(--color-border)]">
+      <div className="flex items-center gap-3 mb-6">
+        <span className="w-[3px] h-4 bg-[var(--color-accent)] rounded-sm" />
+        <h3 className="font-[var(--font-display)] text-base font-semibold text-[var(--color-text-primary)]">
+          继续追问
+        </h3>
+      </div>
 
       {/* Messages */}
       {messages.length > 0 && (
-        <div className="space-y-4 mb-5">
+        <div className="space-y-6 mb-6">
           {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : ""}`}>
-              {m.role === "assistant" && (
-                <span className="w-7 h-7 rounded-full bg-[var(--color-accent-bg)] text-[var(--color-accent)] flex items-center justify-center text-xs flex-shrink-0 mt-0.5">易</span>
-              )}
-              <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-[var(--color-accent)] text-white rounded-br-md"
-                  : "bg-[#f8f5f0] text-[var(--color-text-body)] rounded-bl-md"
-              }`}>
-                {m.content}
-              </div>
-              {m.role === "user" && (
-                <span className="w-7 h-7 rounded-full bg-[var(--color-text-dim)] text-white flex items-center justify-center text-xs flex-shrink-0 mt-0.5">我</span>
+            <div key={i} className={m.role === "user" ? "flex justify-end" : ""}>
+              {m.role === "assistant" ? (
+                /* AI reply — magazine-style prose */
+                <div className="text-[15px] leading-[1.85] text-[var(--color-text-body)] space-y-3">
+                  {m.content.split("\n").map((line, j) => {
+                    const t = line.trim();
+                    if (!t) return <div key={j} className="h-3" />;
+                    if (t.startsWith("**") && t.includes("。")) {
+                      // Bold heading-like line
+                      return <p key={j} className="font-semibold text-[var(--color-text-primary)] mt-5 mb-1">{parseBold(t)}</p>;
+                    }
+                    if (/^\d+\.\s/.test(t) || t.startsWith("- ")) {
+                      // Numbered or bullet list
+                      return <p key={j} className="pl-4">{parseBold(t)}</p>;
+                    }
+                    if (t.startsWith("> ")) {
+                      return (
+                        <blockquote key={j} className="mx-0 my-4 px-5 py-4 rounded-xl
+                          bg-[#fdfaf4] border-l-[3px] border-[var(--color-gold)]
+                          font-[var(--font-display)] text-[16px] leading-[1.7] text-[var(--color-text-primary)] italic">
+                          {parseBold(t.slice(2))}
+                        </blockquote>
+                      );
+                    }
+                    return <p key={j}>{parseBold(t)}</p>;
+                  })}
+                </div>
+              ) : (
+                /* User message — compact bubble */
+                <div className="flex items-end gap-2">
+                  <div className="max-w-[75%] px-4 py-2.5 bg-[var(--color-accent)] text-white rounded-2xl rounded-br-md text-sm leading-relaxed">
+                    {m.content}
+                  </div>
+                  <span className="w-6 h-6 rounded-full bg-[var(--color-text-dim)] text-white flex items-center justify-center text-[10px] flex-shrink-0 mb-0.5">我</span>
+                </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center gap-3 py-3 text-sm text-[var(--color-text-dim)]">
+          <div className="w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+          正在回复...
         </div>
       )}
 
@@ -225,8 +258,8 @@ export default function DivinationPage() {
   return (
     <>
       <Sidebar />
-      <main className="flex-1 px-8 py-8 overflow-y-auto">
-        <div className="w-full">
+      <main className="flex-1 px-8 py-8 overflow-y-auto flex justify-center">
+        <div className="w-full max-w-[720px]">
           <div className="flex items-center gap-3 mb-6">
             <span className="w-[3px] h-5 bg-[var(--color-accent)] rounded-sm" />
             <h1 className="font-[var(--font-display)] text-xl font-semibold">起卦</h1>
