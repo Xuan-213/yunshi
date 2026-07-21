@@ -55,10 +55,13 @@ export default function HomePage() {
   const yearName = `${yearGan}${yearZhi}年`;
 
   const monthNum = now.getMonth() + 1;
-  const monthZhiIdx = (monthNum + 1) % 12; // 正月寅=1
-  const monthZhi = ["寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"][monthZhiIdx - 1];
-  const monthGanHead = ((yearGanIdx % 5) * 2 + 2) % 10; // 年上起月: 甲己丙作首
-  const monthGan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][(monthGanHead + (monthZhiIdx - 1)) % 10];
+  const day = now.getDate();
+  // 节气月索引（同paiPan.ts）: 寅=0,...,丑=11
+  const mzIdx = monthNum === 2 ? (day >= 4 ? 0 : 11) : monthNum === 3 ? (day >= 6 ? 1 : 0) : monthNum === 4 ? (day >= 5 ? 2 : 1) : monthNum === 5 ? (day >= 6 ? 3 : 2) : monthNum === 6 ? (day >= 6 ? 4 : 3) : monthNum === 7 ? (day >= 7 ? 5 : 4) : monthNum === 8 ? (day >= 7 ? 6 : 5) : monthNum === 9 ? (day >= 8 ? 7 : 6) : monthNum === 10 ? (day >= 8 ? 8 : 7) : monthNum === 11 ? (day >= 7 ? 9 : 8) : monthNum === 12 ? (day >= 7 ? 10 : 9) : (day >= 6 ? 11 : 10);
+  const monthZhiArr = ["寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"];
+  const monthZhi = monthZhiArr[mzIdx];
+  const monthGanHead = ((yearGanIdx % 5) * 2 + 2) % 10;
+  const monthGan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][(monthGanHead + mzIdx) % 10];
   const monthName = `${monthGan}${monthZhi}月 (${monthNum}月)`;
 
   const miniCards = [

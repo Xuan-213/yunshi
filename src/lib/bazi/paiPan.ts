@@ -82,21 +82,31 @@ function getYearPillar(year: number): Pillar {
 
 /** 获取月柱（以节气为界） */
 function getMonthPillar(yearGan: TianGan, month: number, day: number): Pillar {
-  // 简化节气判断: 每月节气大约在4-8号
-  // 精确版需要节气表
+  // 节气月: 寅=0,卯=1,...,丑=11 (与MONTH_ZHI索引一致)
+  // 每月节气日约在4-8号, 精确版需节气表
   let zhiIndex: number;
-  if (month === 1)  zhiIndex = day >= 6 ? 2 : 1;   // 小寒/立春
-  else if (month === 2)  zhiIndex = day >= 4 ? 3 : 2;   // 立春/惊蛰
-  else if (month === 3)  zhiIndex = day >= 6 ? 4 : 3;   // 惊蛰/清明
-  else if (month === 4)  zhiIndex = day >= 5 ? 5 : 4;   // 清明/立夏
-  else if (month === 5)  zhiIndex = day >= 6 ? 6 : 5;   // 立夏/芒种
-  else if (month === 6)  zhiIndex = day >= 7 ? 7 : 6;   // 芒种/小暑
-  else if (month === 7)  zhiIndex = day >= 7 ? 8 : 7;   // 小暑/立秋
-  else if (month === 8)  zhiIndex = day >= 8 ? 9 : 8;   // 立秋/白露
-  else if (month === 9)  zhiIndex = day >= 8 ? 10 : 9;  // 白露/寒露
-  else if (month === 10) zhiIndex = day >= 8 ? 11 : 10; // 寒露/立冬
-  else if (month === 11) zhiIndex = day >= 7 ? 0 : 11;  // 立冬/大雪
-  else zhiIndex = day >= 6 ? 1 : 0;                     // 大雪/小寒
+  if (month === 1)  zhiIndex = day >= 6 ? 1 : 0;    // 小寒(~6日): 前=子(0→??no)→丑(11实际)
+  // Actually let me just write this correctly from scratch
+
+  // The correct mapping: what月支 does a given Gregorian date fall in
+  // monthZhi = index into MONTH_ZHI = ["寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"]
+  // 节气分界（近似日期）:
+  // 立春2/4→寅, 惊蛰3/6→卯, 清明4/5→辰, 立夏5/6→巳, 芒种6/6→午,
+  // 小暑7/7→未, 立秋8/7→申, 白露9/8→酉, 寒露10/8→戌, 立冬11/7→亥,
+  // 大雪12/7→子, 小寒1/6→丑
+
+  if (month === 2)  zhiIndex = day >= 4 ? 0 : 11;   // 立春→寅(0), else丑(11)
+  else if (month === 3)  zhiIndex = day >= 6 ? 1 : 0;    // 惊蛰→卯(1), else寅(0)
+  else if (month === 4)  zhiIndex = day >= 5 ? 2 : 1;    // 清明→辰(2), else卯(1)
+  else if (month === 5)  zhiIndex = day >= 6 ? 3 : 2;    // 立夏→巳(3), else辰(2)
+  else if (month === 6)  zhiIndex = day >= 6 ? 4 : 3;    // 芒种→午(4), else巳(3)
+  else if (month === 7)  zhiIndex = day >= 7 ? 5 : 4;    // 小暑→未(5), else午(4)
+  else if (month === 8)  zhiIndex = day >= 7 ? 6 : 5;    // 立秋→申(6), else未(5)
+  else if (month === 9)  zhiIndex = day >= 8 ? 7 : 6;    // 白露→酉(7), else申(6)
+  else if (month === 10) zhiIndex = day >= 8 ? 8 : 7;    // 寒露→戌(8), else酉(7)
+  else if (month === 11) zhiIndex = day >= 7 ? 9 : 8;    // 立冬→亥(9), else戌(8)
+  else if (month === 12) zhiIndex = day >= 7 ? 10 : 9;   // 大雪→子(10), else亥(9)
+  else zhiIndex = day >= 6 ? 11 : 10;                     // 1月: 小寒→丑(11), else子(10)
 
   const zhi = MONTH_ZHI[zhiIndex];
   const gan = getMonthGan(yearGan, zhiIndex);
