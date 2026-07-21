@@ -57,7 +57,7 @@ export default function HomePage() {
   const monthNum = now.getMonth() + 1;
   const monthZhiIdx = (monthNum + 1) % 12; // 正月寅=1
   const monthZhi = ["寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"][monthZhiIdx - 1];
-  const monthGanHead = (yearGanIdx % 5) * 2; // 年上起月
+  const monthGanHead = ((yearGanIdx % 5) * 2 + 2) % 10; // 年上起月: 甲己丙作首
   const monthGan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][(monthGanHead + (monthZhiIdx - 1)) % 10];
   const monthName = `${monthGan}${monthZhi}月 (${monthNum}月)`;
 

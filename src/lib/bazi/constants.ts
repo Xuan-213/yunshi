@@ -131,8 +131,8 @@ export const MONTH_ZHI: DiZhi[] = ["寅", "卯", "辰", "巳", "午", "未", "�
 /** 年上起月法 (五虎遁) */
 export function getMonthGan(yearGan: TianGan, monthZhiIndex: number): TianGan {
   const yearGanIndex = TIAN_GAN.indexOf(yearGan);
-  // 甲己之年丙作首
-  const headIndex = (yearGanIndex % 5) * 2;
+  // 甲己之年丙作首, 乙庚之年戊为头, 丙辛之年寻庚上, 丁壬之年壬寅头, 戊癸之年甲寅求
+  const headIndex = ((yearGanIndex % 5) * 2 + 2) % 10;
   return TIAN_GAN[(headIndex + monthZhiIndex) % 10];
 }
 
