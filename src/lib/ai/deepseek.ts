@@ -87,6 +87,54 @@ export async function aiLiuyaoInterpret(
 }
 
 /** 追问对话 */
+/** AI 日运生成 */
+export async function aiDailyFortune(
+  baziSummary: string, dayGanZhi: string, lunarDate: string,
+  dimensions: string, userFeedback?: string,
+): Promise<{ score: number; scoreLabel: string; tags: string; metaphor: string; plain: string }> {
+  const fbLine = userFeedback ? `\n用户反馈：${userFeedback}\n请根据反馈调整解读。` : "";
+  const prompt = `你是一位资深八字命理师。请根据以下命盘信息，生成今日运势解读。
+
+八字命盘：${baziSummary}
+今日干支：${dayGanZhi}（${lunarDate}）
+各维度分析：${dimensions}
+${fbLine}
+
+请用JSON格式返回（不要markdown代码块）：
+{
+  "score": 数字1-5（今日综合运势评分，可带小数如4.2）,
+  "scoreLabel": "上上/中上/中等/中下/下",
+  "tags": ["标签1", "标签2"],
+  "metaphor": "用100字以内的比喻手法解读今日运势，生动但不浮夸，结合日主和流日的关系",
+  "plain": "150字以内的白话解读，说明日主与流日干支的生克关系及对运势的影响，具体不模板化"
+}`;
+  try {
+    const raw = await clientChat([{ role: "user", content: prompt }], 0.7, 600);
+    return JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
+  } catch { return { score: 3, scoreLabel: "中等", tags: "[\"平稳\"]", metaphor: "", plain: "" }; }
+}
+
+/** AI 单一维度解读 */
+export async function aiDimensionFortune(
+  dim: string, baziSummary: string, dayGanZhi: string, userFeedback?: string,
+): Promise<{ analysis: string; tip: string }> {
+  const fbLine = userFeedback ? `\n用户反馈：${userFeedback}\n请根据反馈调整解读。` : "";
+  const prompt = `你是一位资深八字命理师。请根据命盘和今日干支，分析${dim}运势。
+
+八字：${baziSummary}
+今日：${dayGanZhi}${fbLine}
+
+请用JSON返回（不要markdown）：
+{
+  "analysis": "80-120字的${dim}运势分析，具体到日主与流日的关系，不要模板化套话",
+  "tip": "一句实用的今日${dim}建议（15字以内）"
+}`;
+  try {
+    const raw = await clientChat([{ role: "user", content: prompt }], 0.7, 400);
+    return JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
+  } catch { return { analysis: "", tip: "" }; }
+}
+
 export async function aiFollowUp(
   context: { question: string; result: string },
   messages: { role: "user" | "assistant"; content: string }[],
