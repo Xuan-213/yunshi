@@ -51,13 +51,14 @@ export interface ShiShenMap {
 /** 完整命盘 */
 export interface MingPan {
   bazi: BaZiChart;
-  cangGan: TianGan[][];      // 地支藏干
-  dayMaster: TianGan;        // 日主
-  dayMasterWx: WuXing;       // 日主五行
-  shiShen: ShiShenMap;       // 十神
-  wuXingCount: Record<WuXing, number>; // 五行统计
+  cangGan: TianGan[][];
+  dayMaster: TianGan;
+  dayMasterWx: WuXing;
+  shiShen: ShiShenMap;
+  wuXingCount: Record<WuXing, number>;
   daYun: DaYun;
-  shenSha: string[];         // 神煞
+  shenSha: string[];
+  trueSolarInfo: { original: string; adjusted: string; offsetMin: number }; // 真太阳时信息
 }
 
 /** 真太阳时校正 */
@@ -226,8 +227,19 @@ export function paiPan(input: BirthInput): MingPan {
   if (["申", "子", "辰"].includes(dayZhiStr)) shenSha.push("天乙贵人");
   if (["寅", "午", "戌"].includes(dayZhiStr)) shenSha.push("驿马");
 
+  // 真太阳时信息
+  const origHour = input.hour;
+  const origMin = input.minute || 0;
+  const adj = solar;
+  const offsetMin = Math.round((input.longitude - 120) * 4);
+  const trueSolarInfo = {
+    original: `${String(origHour).padStart(2,"0")}:${String(origMin).padStart(2,"0")}`,
+    adjusted: `${String(adj.hour).padStart(2,"0")}:${String(adj.minute).padStart(2,"0")}`,
+    offsetMin,
+  };
+
   return {
-    bazi, cangGan, dayMaster, dayMasterWx, shiShen, wuXingCount, daYun, shenSha,
+    bazi, cangGan, dayMaster, dayMasterWx, shiShen, wuXingCount, daYun, shenSha, trueSolarInfo,
   };
 }
 

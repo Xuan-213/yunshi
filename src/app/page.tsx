@@ -44,7 +44,7 @@ function FeedbackChip({ onFeedback }: { onFeedback: (text: string) => void }) {
 // ---- Fortune data types ----
 interface FortuneData {
   score: number; scoreLabel: string; tags: string[];
-  metaphor: string; plain: string;
+  metaphor: string; analysis: string; advice: string;
   yi: string[]; ji: string[];
   dimensions: { icon: string; iconBg: string; name: string; stars: number; analysis: string; tip: string }[];
   lucky: { icon: string; label: string; value: string }[];
@@ -71,10 +71,10 @@ export default function HomePage() {
 
   const analysis = useMemo(() => chart ? analyzeMingPan(chart) : null, [chart]);
   const baziSummary = useMemo(() => chart && analysis
-    ? `${chart.bazi.year.ganZhi} ${chart.bazi.month.ganZhi} ${chart.bazi.day.ganZhi} ${chart.bazi.hour.ganZhi}，日主${chart.dayMaster}${chart.dayMasterWx}命，用神${analysis.yongShen.shen}。`
+    ? `四柱：${chart.bazi.year.ganZhi}年 ${chart.bazi.month.ganZhi}月 ${chart.bazi.day.ganZhi}日 ${chart.bazi.hour.ganZhi}时。日主：${chart.dayMaster}（${chart.dayMasterWx}命）。用神：${analysis.yongShen.shen}，忌神：${analysis.jiShen}。大运：${chart.daYun.startAge}岁起运，当前大运${chart.daYun.pillars[0]}。十神：年柱${chart.shiShen.year}，月柱${chart.shiShen.month}，日柱日主，时柱${chart.shiShen.hour}。五行统计：金${chart.wuXingCount.金}木${chart.wuXingCount.木}水${chart.wuXingCount.水}火${chart.wuXingCount.火}土${chart.wuXingCount.土}。日支${chart.bazi.day.zhi}为配偶宫。`
     : "", [chart, analysis]);
   const dimSummary = useMemo(() => chart
-    ? Object.entries(chart.shiShen).map(([k,v]) => `${k==="year"?"年":k==="month"?"月":k==="day"?"日":"时"}柱${chart.bazi[k==="year"?"year":k==="month"?"month":k==="day"?"day":"hour"].ganZhi}(${v})`).join("，")
+    ? `日柱${chart.bazi.day.ganZhi}（${chart.dayMaster}${chart.dayMasterWx}${chart.shiShen.day}），与各柱关系：年${chart.bazi.year.ganZhi}（${chart.shiShen.year}）月${chart.bazi.month.ganZhi}（${chart.shiShen.month}）时${chart.bazi.hour.ganZhi}（${chart.shiShen.hour}）`
     : "", [chart]);
 
   const generatedRef = useRef("");
@@ -88,32 +88,48 @@ export default function HomePage() {
     { icon: "🤝", iconBg: "#f4f7f5", name: "人际", stars: 3, analysis: "", tip: "" },
   ];
 
-  // Generate AI fortune
+  // Generate AI fortune (with 8s timeout fallback to template)
   const generateFortune = useCallback(async (feedback?: string) => {
     if (!chart || !analysis) return;
     setAiLoading(true);
+    const timeout = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
     try {
-      const ai = await aiDailyFortune(baziSummary, dayGanZhi, lunarStr, dimSummary, feedback);
+      const ai = await Promise.race([aiDailyFortune(baziSummary, dayGanZhi, lunarStr, dimSummary, feedback), timeout]) as any;
+      if (!ai || ai.score === undefined) throw new Error("invalid");
       const dims = await Promise.all(defaultDims.map(async d => {
         try {
-          const r = await aiDimensionFortune(d.name, baziSummary, dayGanZhi);
-          return { ...d, analysis: r.analysis, tip: `💡 ${r.tip}`, stars: Math.round(ai.score + (d.name === "财运" ? 0.5 : d.name === "事业" ? 0.3 : 0)) || 3 };
-        } catch { return { ...d, analysis: "AI 生成中...", tip: "💡 稍后重试" }; }
+          const r = await Promise.race([aiDimensionFortune(d.name, baziSummary, dayGanZhi), timeout]) as any;
+          if (!r || !r.analysis) throw new Error("invalid");
+          return { ...d, analysis: r.analysis, tip: `💡 ${r.tip}`, stars: Math.round((ai.score||3) + (d.name === "财运" ? 0.5 : d.name === "事业" ? 0.3 : 0)) || 3 };
+        } catch { return { ...d, analysis: "", tip: "💡 稍后重试" }; }
       }));
       setFortune({
-        score: ai.score, scoreLabel: ai.scoreLabel,
-        tags: (typeof ai.tags === "string" ? JSON.parse(ai.tags) : ai.tags) || [], metaphor: ai.metaphor, plain: ai.plain,
+        score: ai.score || 3, scoreLabel: ai.scoreLabel || "中等",
+        tags: (typeof ai.tags === "string" ? (() => { try { return JSON.parse(ai.tags); } catch { return []; } })() : ai.tags) || [],
+        metaphor: ai.metaphor || "", analysis: ai.analysis || "", advice: ai.advice || "",
         yi: ["📝 签约", "🤝 合作", "💰 理财", "📚 学习"], ji: ["⚔️ 争执", "💸 大额消费"],
-        dimensions: dims,
+        dimensions: dims.map(d => d.analysis ? d : { ...d, analysis: `${d.name}运势平稳，按部就班推进即可。`, tip: "💡 保持平常心" }),
         lucky: [
-          { icon: "🎨", label: "幸运色", value: ai.score >= 4 ? "金色 · 白色" : "蓝色 · 黑色" },
-          { icon: "🔢", label: "幸运数字", value: ai.score >= 4 ? "6 · 8" : "3 · 7" },
+          { icon: "🎨", label: "幸运色", value: (ai.score||3) >= 4 ? "金色 · 白色" : "蓝色 · 黑色" },
+          { icon: "🔢", label: "幸运数字", value: (ai.score||3) >= 4 ? "6 · 8" : "3 · 7" },
           { icon: "🧭", label: "吉方", value: "东南" },
           { icon: "🐒", label: "贵人属相", value: "猴" },
         ],
         lunarDate: lunarStr, ganzhiDay: dayGanZhi, solarDate: `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")}`,
       });
-    } catch { /* use fallback */ }
+    } catch {
+      // Fallback: template-based
+      setFortune({
+        score: 3, scoreLabel: "中等", tags: ["平稳"],
+        metaphor: "今日运势平稳，如湖面微风，波澜不惊。",
+        analysis: `今日干支${dayGanZhi}与日主${chart.dayMaster}${chart.dayMasterWx}命处于中性关系。稳扎稳打，按部就班推进各项事务即可。`,
+        advice: "保持平常心，按计划推进，不求速成。",
+        yi: ["📝 签约", "📚 学习"], ji: ["💸 大额消费", "⚔️ 争执"],
+        dimensions: defaultDims.map(d => ({ ...d, analysis: `${d.name}运势平稳，按部就班即可。`, tip: "💡 保持平常心" })),
+        lucky: [{ icon: "🎨", label: "幸运色", value: "金色" }, { icon: "🔢", label: "幸运数字", value: "6" }, { icon: "🧭", label: "吉方", value: "东南" }, { icon: "🐒", label: "贵人属相", value: "猴" }],
+        lunarDate: lunarStr, ganzhiDay: dayGanZhi, solarDate: `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")}`,
+      });
+    }
     setAiLoading(false);
   }, [chart, analysis, baziSummary, dayGanZhi, lunarStr, dimSummary]);
 
@@ -257,13 +273,24 @@ export default function HomePage() {
                 </div>
               ) : (
                 <>
-                  <div className="bg-[var(--color-bg-card-warm)] border border-[var(--color-border-light)] rounded-xl p-5 mb-5">
-                    <p className="font-[var(--font-display)] text-base text-[var(--color-accent)] font-medium leading-relaxed mb-3 pl-4 border-l-[3px] border-[var(--color-accent)]">
-                      {fortune.metaphor}
-                    </p>
-                    <p className="text-sm text-[var(--color-text-body)] leading-relaxed">
-                      <strong className="text-[var(--color-text-primary)]">通俗来说：</strong>{fortune.plain}
-                    </p>
+                  <div className="bg-[var(--color-bg-card-warm)] border border-[var(--color-border-light)] rounded-xl p-5 mb-5 space-y-4">
+                    {/* 比喻 */}
+                    <div>
+                      <div className="text-[10px] text-[var(--color-gold)] tracking-widest mb-2 uppercase">比喻</div>
+                      <p className="font-[var(--font-display)] text-base text-[var(--color-accent)] font-medium leading-relaxed pl-4 border-l-[3px] border-[var(--color-accent)]">
+                        {fortune.metaphor}
+                      </p>
+                    </div>
+                    {/* 分析 */}
+                    <div>
+                      <div className="text-[10px] text-[var(--color-gold)] tracking-widest mb-2 uppercase">分析</div>
+                      <p className="text-sm text-[var(--color-text-body)] leading-[1.85]">{fortune.analysis}</p>
+                    </div>
+                    {/* 建议 */}
+                    <div>
+                      <div className="text-[10px] text-[var(--color-gold)] tracking-widest mb-2 uppercase">建议</div>
+                      <p className="text-sm text-[var(--color-text-body)] leading-[1.85]">{fortune.advice}</p>
+                    </div>
                   </div>
                   <div className="flex justify-end -mt-3 mb-3">
                     <FeedbackChip onFeedback={fb => generateFortune(fb)} />

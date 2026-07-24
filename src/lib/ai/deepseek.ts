@@ -1,41 +1,23 @@
-// ====== DeepSeek AI 客户端 ======
-
-const DEEPSEEK_API = "https://api.deepseek.com/v1/chat/completions";
+// ====== DeepSeek AI 客户端（通过服务端 API 代理） ======
 
 interface ChatMessage { role: "system" | "user" | "assistant"; content: string; }
 
-/** 调用 DeepSeek chat API */
-async function chat(messages: ChatMessage[], temp = 0.8, maxTokens = 2048): Promise<string> {
-  const key = typeof window !== "undefined" ? "" : process.env.DEEPSEEK_API_KEY || "";
-  if (!key && typeof window === "undefined") throw new Error("No API key");
-
-  const res = await fetch(DEEPSEEK_API, {
+/** 通用聊天 — 调服务端 /api/ai */
+async function serverChat(messages: ChatMessage[], temp = 0.8, maxTokens = 2048): Promise<string> {
+  const res = await fetch("/api/ai", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key || (typeof window !== "undefined" ? (window as any).__DS_KEY : "")}` },
-    body: JSON.stringify({ model: "deepseek-chat", messages, temperature: temp, max_tokens: maxTokens }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "chat", messages, temp, maxTokens }),
   });
-  if (!res.ok) throw new Error(`DeepSeek API ${res.status}`);
+  if (!res.ok) throw new Error(`AI API ${res.status}`);
   const data = await res.json();
-  return data.choices[0].message.content;
+  if (data.error) throw new Error(data.error);
+  return data.content;
 }
 
-function getKey(): string {
-  if (typeof window !== "undefined") return localStorage.getItem("ds_key") || "";
-  return process.env.DEEPSEEK_API_KEY || "";
-}
-
-/** 客户端调用 DeepSeek */
+/** 客户端调用（兼容旧接口） */
 export async function clientChat(messages: ChatMessage[], temp = 0.8, maxTokens = 2048): Promise<string> {
-  const key = getKey();
-  if (!key) throw new Error("No API key configured");
-  const res = await fetch(DEEPSEEK_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
-    body: JSON.stringify({ model: "deepseek-chat", messages, temperature: temp, max_tokens: maxTokens }),
-  });
-  if (!res.ok) throw new Error(`DeepSeek API ${res.status}`);
-  const data = await res.json();
-  return data.choices[0].message.content;
+  return serverChat(messages, temp, maxTokens);
 }
 
 /** AI 六爻叙事解卦 */
@@ -45,73 +27,76 @@ export async function aiLiuyaoInterpret(
   guaCi: string, guaCiCN: string, xiangZhuan: string,
   yaoPos: string, yaoCi: string, yaoCiCN: string,
 ): Promise<string> {
-  const aaa = digits.slice(0, 3);
-  const bbb = digits.slice(3, 6);
-  const sum = parseInt(aaa) + parseInt(bbb);
-
-  const prompt = `你是一位精通周易六爻的解卦师。请根据以下起卦结果，为提问者提供一份专业、清晰的解卦分析。
-
-提问：「${question}」
-报数：${digits}
-
-起卦过程：
-- 前三位 ${aaa} → ${aaa} ÷ 8 余 ${shangNum} → 上卦
-- 后三位 ${bbb} → ${bbb} ÷ 8 余 ${xiaNum} → 下卦
-- ${aaa} + ${bbb} = ${sum} → ${sum} ÷ 6 余 ${dongYao} → 第 ${dongYao} 爻动
-- 本卦：「${benGuaName}」  变卦：「${bianGuaName}」
-
-本卦卦辞："${guaCi}" —— ${guaCiCN}
-《大象》："${xiangZhuan}"
-动爻 ${yaoPos} 爻辞："${yaoCi}" —— ${yaoCiCN}
-
-请按以下结构撰写解卦分析（用"---"分隔各部分，不要编号标题）：
-
-- 排卦简述：用简洁的语言说明数字如何得出本卦和变卦。上卦下卦各是什么、象征什么。
-- 本卦分析「${benGuaName}」：解释本卦的核心含义，说明卦辞在提问者的问题上如何理解。引用原文。
-- 动爻精解${yaoPos}：这是最关键的部分。逐字解释爻辞原文，然后具体应用于提问者的情境。讲清楚这一爻在说什么。
-- 变卦走向「${bianGuaName}」：从本卦到变卦的变化意味着什么趋势。
-- 综合判断：用一两段话给出整体结论，不模棱两可。
-
-注意：
-- 语言专业但不学究，清晰但不生硬
-- 引用原文用引号
-- 不使用"综上所述""总而言之"
-- 700-900 字
-- 不要拟人化，不要用"奶奶""乖孙""孩子"等称呼`;
-
-  try {
-    return await clientChat([{ role: "user", content: prompt }], 0.8, 1800);
-  } catch {
-    return "";
-  }
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "liuyao",
+      question, digits, shangNum, xiaNum, dongYao,
+      benGuaName, bianGuaName, guaCi, guaCiCN, xiangZhuan,
+      yaoPos, yaoCi, yaoCiCN,
+    }),
+  });
+  if (!res.ok) return "";
+  const data = await res.json();
+  return data.content || "";
 }
 
 /** 追问对话 */
+export async function aiFollowUp(
+  context: { question: string; result: string },
+  messages: { role: "user" | "assistant"; content: string }[],
+): Promise<string> {
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "followup", question: context.question, result: context.result, messages }),
+  });
+  if (!res.ok) throw new Error(`AI API ${res.status}`);
+  const data = await res.json();
+  return data.content;
+}
+
 /** AI 日运生成 */
 export async function aiDailyFortune(
   baziSummary: string, dayGanZhi: string, lunarDate: string,
   dimensions: string, userFeedback?: string,
-): Promise<{ score: number; scoreLabel: string; tags: string; metaphor: string; plain: string }> {
+): Promise<{ score: number; scoreLabel: string; tags: string; metaphor: string; analysis: string; advice: string }> {
   const fbLine = userFeedback ? `\n用户反馈：${userFeedback}\n请根据反馈调整解读。` : "";
-  const prompt = `你是一位资深八字命理师。请根据以下命盘信息，生成今日运势解读。
+  const prompt = `你是资深八字命理师。请严格基于以下数据生成今日运势。不要套用模板，每次输出都应是独一无二的分析。
 
-八字命盘：${baziSummary}
-今日干支：${dayGanZhi}（${lunarDate}）
-各维度分析：${dimensions}
+【命盘数据】
+${baziSummary}
+
+【今日数据】
+干支：${dayGanZhi}（${lunarDate}）
+十神分布：${dimensions}
+
 ${fbLine}
 
-请用JSON格式返回（不要markdown代码块）：
+【你需要做的分析】（不是填写模板，而是真正算）
+1. 日主五行是什么？今日干支的五行是什么？生克关系是什么？
+2. 今日天干与四柱各天干产生什么十神关系？
+3. 今日地支与原局地支有无冲合刑害？
+4. 当前大运是什么？与今日干支有无特殊关系？
+5. 根据以上分析，今日日主旺衰如何变化？用神是否得力？
+
+【输出格式】JSON（不要markdown代码块）：
 {
-  "score": 数字1-5（今日综合运势评分，可带小数如4.2）,
+  "score": 1-5的数字（基于五行生克判断，不是拍脑袋）,
   "scoreLabel": "上上/中上/中等/中下/下",
-  "tags": ["标签1", "标签2"],
-  "metaphor": "用100字以内的比喻手法解读今日运势，生动但不浮夸，结合日主和流日的关系",
-  "plain": "150字以内的白话解读，说明日主与流日干支的生克关系及对运势的影响，具体不模板化"
-}`;
+  "tags": ["核心运势标签", "次要标签"],
+  "metaphor": "一段生动的比喻，把今日核心的五行生克关系转化为生活场景，60-100字",
+  "analysis": "将上述5条命理分析用人话讲出来——日主与流日的关系、对情绪和决策的实质影响，100-140字",
+  "advice": "基于analysis的2-3条具体建议，每条不超过20字"
+}
+
+关键：metaphor必须紧扣今日实际的五行生克关系，不能泛泛而谈。analysis必须引用具体的干支和十神关系，不能是\"运势平稳\"这种废话。`;
+
   try {
-    const raw = await clientChat([{ role: "user", content: prompt }], 0.7, 600);
+    const raw = await serverChat([{ role: "user", content: prompt }], 0.85, 800);
     return JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
-  } catch { return { score: 3, scoreLabel: "中等", tags: "[\"平稳\"]", metaphor: "", plain: "" }; }
+  } catch { return { score: 3, scoreLabel: "中等", tags: "[\"平稳\"]", metaphor: "", analysis: "", advice: "" }; }
 }
 
 /** AI 单一维度解读 */
@@ -130,21 +115,7 @@ export async function aiDimensionFortune(
   "tip": "一句实用的今日${dim}建议（15字以内）"
 }`;
   try {
-    const raw = await clientChat([{ role: "user", content: prompt }], 0.7, 400);
+    const raw = await serverChat([{ role: "user", content: prompt }], 0.7, 400);
     return JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
   } catch { return { analysis: "", tip: "" }; }
-}
-
-export async function aiFollowUp(
-  context: { question: string; result: string },
-  messages: { role: "user" | "assistant"; content: string }[],
-): Promise<string> {
-  const systemMsg = `你是一位精通周易六爻的解卦师。之前你为用户做了一次六爻占卜解读。现在用户在追问。请根据之前的解卦内容回答追问。保持专业、清晰。`;
-  const chatMessages: ChatMessage[] = [
-    { role: "system", content: systemMsg },
-    { role: "user", content: `之前的问题：「${context.question}」\n之前的解卦结果：${context.result.slice(0, 2000)}` },
-    { role: "assistant", content: "好的，我已经了解了之前的解卦内容。请问有什么想进一步了解的？" },
-    ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
-  ];
-  return clientChat(chatMessages, 0.7, 800);
 }

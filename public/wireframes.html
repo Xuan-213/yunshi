@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Yunshi Mobile — Wireframes</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0ede8;
+    --card: #ffffff;
+    --border: #ddd8cf;
+    --text: #3d3929;
+    --text-dim: #9a9484;
+    --text-hint: #c4bfb2;
+    --accent: #c04040;
+    --gold: #b89440;
+    --accent-bg: #fdf6f0;
+    --green: #4a9e6e;
+    --green-bg: #f4faf6;
+    --accent-deep: #a03030;
+    --font-display: 'Georgia', 'Noto Serif SC', serif;
+    --font-body: system-ui, -apple-system, sans-serif;
+    --font-number: 'SF Mono', 'Menlo', monospace;
+  }
+
+  body {
+    background: #e8e4dc;
+    font-family: var(--font-body);
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+    min-height: 100vh;
+  }
+
+  /* Phone Frame */
+  .phone {
+    width: 375px;
+    height: 812px;
+    background: #faf9f6;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15), 0 0 0 2px #222;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    padding: 14px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Screen Header */
+  .screen-header {
+    padding: 8px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .screen-header h1 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Main scrollable area */
+  .screen-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .screen-content::-webkit-scrollbar { display: none; }
+
+  /* Bottom Tab Bar */
+  .tab-bar {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: #faf9f6;
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0;
+    border: none;
+    background: none;
+    font-size: 10px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab-btn.active { color: var(--accent); }
+  .tab-btn .icon { font-size: 22px; line-height: 1; }
+
+  /* Screen visibility */
+  .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* Wireframe Label */
+  .wf-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-hint);
+    padding: 4px 0;
+    font-weight: 600;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-dashed {
+    border-style: dashed;
+    background: #fefdf9;
+  }
+  .card-accent {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .card-gold {
+    background: #fdfaf4;
+    border-color: #e0d5b8;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-body);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-outline {
+    background: #fff;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .btn-sm { padding: 6px 16px; font-size: 12px; }
+  .btn-block { width: 100%; }
+  .btn-fab {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 24px; padding: 0;
+    box-shadow: 0 4px 16px rgba(192,64,64,.3);
+  }
+
+  /* Tags */
+  .tag {
+    display: inline-block; padding: 4px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+  }
+  .tag-good { background: var(--green-bg); color: var(--green); }
+  .tag-warn { background: var(--accent-bg); color: var(--gold); }
+
+  /* Score Ring */
+  .score-ring {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 3px solid var(--accent);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-ring .num {
+    font-family: var(--font-number);
+    font-size: 32px; font-weight: 700;
+    color: var(--accent); line-height: 1;
+  }
+  .score-ring .lbl {
+    font-size: 10px; color: var(--text-dim);
+  }
+
+  /* Inputs */
+  .input {
+    width: 100%; padding: 12px 16px;
+    border: 1px solid var(--border); border-radius: 12px;
+    font-size: 14px; background: #fdfcfa;
+    outline: none; font-family: var(--font-body);
+    transition: border-color .15s;
+  }
+  .input:focus { border-color: var(--accent); }
+
+  /* Toggle Group */
+  .toggle-group {
+    display: flex; background: #f5f0e8; border-radius: 10px; padding: 3px;
+  }
+  .toggle-btn {
+    flex: 1; padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; border: none;
+    background: transparent; color: var(--text-dim);
+    cursor: pointer; transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-body);
+  }
+  .toggle-btn.active {
+    background: #fff; color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  /* Dimension card */
+  .dim-card {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .dim-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .dim-stars { color: var(--gold); font-size: 13px; letter-spacing: 2px; }
+
+  /* Section title */
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .section-title .bar {
+    width: 3px; height: 16px; background: var(--accent); border-radius: 2px;
+  }
+  .section-title h2 {
+    font-family: var(--font-display); font-size: 16px; font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .empty-state p { font-size: 13px; color: var(--text-dim); }
+
+  /* Yi/Ji list */
+  .yiji-row {
+    display: flex; gap: 12px;
+  }
+  .yiji-col {
+    flex: 1; padding: 12px; border-radius: 12px;
+  }
+  .yi-col { background: var(--green-bg); }
+  .ji-col { background: var(--accent-bg); }
+  .yiji-col h4 { font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .yiji-col li { font-size: 12px; color: var(--text); line-height: 1.8; list-style: none; }
+
+  /* Lucky strip */
+  .lucky-strip {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .lucky-item {
+    padding: 8px 12px; background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; font-size: 12px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .lucky-item .val { font-weight: 600; color: var(--text); }
+
+  /* Form grid */
+  .form-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .form-label {
+    font-size: 12px; font-weight: 500; color: var(--text);
+    margin-bottom: 4px; display: block;
+  }
+
+  /* Bazi pillar */
+  .pillar-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .pillar {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 8px; text-align: center;
+  }
+  .pillar.day { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .pillar .lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; }
+  .pillar .gz { font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+  .pillar .sub { font-size: 11px; color: var(--text-dim); }
+  .pillar .ss { font-size: 9px; padding: 2px 8px; background: #fdfaf4; border-radius: 10px; color: var(--gold); margin-top: 4px; display: inline-block; }
+
+  /* History item */
+  .hist-item {
+    padding: 14px; background: #fdfcf9; border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 8px;
+  }
+  .hist-item .meta {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+
+  /* Chat bubble */
+  .chat-bubble {
+    max-width: 80%; padding: 10px 14px; border-radius: 16px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .chat-bubble.user {
+    background: var(--accent); color: #fff;
+    margin-left: auto; border-bottom-right-radius: 4px;
+  }
+  .chat-bubble.ai {
+    background: #fdfaf4; border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  /* Badge */
+  .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+  }
+  .badge-gold { background: #fdfaf4; color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="phone" id="app">
+
+  <!-- ====== SCREEN 1: FORTUNE ====== -->
+  <div class="screen active" id="screen-fortune">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="screen-content">
+      <div class="wf-label">[HEADER]</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <h1 style="font-family:var(--font-display);font-size:20px;font-weight:600;">下午好，测试用户 👋</h1>
+        </div>
+        <span class="tag tag-warn" style="font-size:11px;">📅 2026.07.24 周五</span>
+      </div>
+
+      <div class="wf-label" style="margin-top:-8px;">[PROFILE SWITCHER — 多命盘切换]</div>
+      <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+        <span class="tag tag-good" style="cursor:pointer;">👤 测试用户</span>
+        <span style="font-size:11px;color:var(--text-dim);padding:4px 0;">+ 新增</span>
+      </div>
+
+      <!-- Fortune Card -->
+      <div class="wf-label">[HERO CARD — 今日运势总览]</div>
+      <div class="card" style="position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-40px;right:-20px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(192,64,64,0.05) 0%,transparent 70%);"></div>
+        <div style="position:relative;z-index:1;">
+          <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:12px;">
+            <div class="score-ring" style="flex-shrink:0;margin-top:4px;">
+              <span class="num">4.0</span>
+              <span class="lbl">中上</span>
+            </div>
+            <div style="flex:1;">
+              <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:4px;">丙午年 · 六月小</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">2026.07.24 · <span style="font-weight:600;color:var(--gold);">己亥日</span></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <span class="tag tag-good">🟢 平稳上升</span>
+                <span class="tag tag-warn">🟡 注意休息</span>
+              </div>
+            </div>
+          </div>
+          <!-- Metaphor -->
+          <div style="background:#fdfaf4;border:1px solid #e0d5b8;border-radius:12px;padding:14px;margin-bottom:12px;">
+            <p style="font-family:var(--font-display);font-size:13px;color:var(--accent);line-height:1.6;margin-bottom:6px;padding-left:12px;border-left:2px solid var(--accent);">
+              今天的你像一艘在平静海面上航行的帆船。外界风浪不大，但需要你主动调整帆的方向。己土为印，生扶日主，适合学习沉淀。
+            </p>
+            <p style="font-size:12px;color:var(--text);line-height:1.6;">
+              <strong>通俗来说：</strong>今天是个平稳的日子，适合按部就班做事。工作上可能会收到一些正面反馈，感情方面保持现状即可。
+            </p>
+          </div>
+
+          <!-- Yi / Ji -->
+          <div class="wf-label">[宜 / 忌]</div>
+          <div class="yiji-row" style="margin-bottom:12px;">
+            <div class="yiji-col yi-col">
+              <h4 style="color:var(--green);">🟢 宜</h4>
+              <li>学习新知识</li><li>整理日程</li><li>与朋友交流</li>
+            </div>
+            <div class="yiji-col ji-col">
+              <h4 style="color:var(--accent);">🔴 忌</h4>
+              <li>冲动消费</li><li>熬夜加班</li><li>重大签约</li>
+            </div>
+          </div>
+
+          <!-- Lucky -->
+          <div class="wf-label">[开运小物]</div>
+          <div class="lucky-strip">
+            <div class="lucky-item"><span style="font-size:16px;">🎨</span><span class="val">青绿色</span></div>
+            <div class="lucky-item"><span style="font-size:16px;">🔢</span><span class="val">3, 8</span></div>
+            <div class="lucky-item"><span style="font-size:16px;">🧭</span><span class="val">东南</span></div>
+            <div class="lucky-item"><span style="font-size:16px;">🐎</span><span class="val">午马</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dimensions -->
+      <div class="section-title"><span class="bar"></span><h2>详细解读</h2></div>
+      <div class="wf-label">[六维运势卡片]</div>
+      <div class="card" style="padding:12px 16px;">
+        <div class="dim-card" style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="dim-icon" style="background:#f4f0ff;">💼</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">事业运势</div><div style="font-size:11px;color:var(--text-dim);">今日工作状态平稳，适合处理积压的文档和邮件。</div></div>
+          <div class="dim-stars">★★★★☆</div>
+        </div>
+        <div class="dim-card" style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="dim-icon" style="background:#fff8e8;">💰</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">财运运势</div><div style="font-size:11px;color:var(--text-dim);">正财稳定，偏财勿碰。适合做预算规划。</div></div>
+          <div class="dim-stars">★★★☆☆</div>
+        </div>
+        <div class="dim-card" style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="dim-icon" style="background:#fff0f4;">❤️</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">感情运势</div><div style="font-size:11px;color:var(--text-dim);">平淡是真，关心身边人胜过追逐远方。</div></div>
+          <div class="dim-stars">★★★★☆</div>
+        </div>
+        <div class="dim-card" style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="dim-icon" style="background:#f0faf4;">🏃</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">健康运势</div><div style="font-size:11px;color:var(--text-dim);">注意肠胃，清淡饮食。适当散步有益。</div></div>
+          <div class="dim-stars">★★★☆☆</div>
+        </div>
+        <div class="dim-card" style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="dim-icon" style="background:#f0f4ff;">📚</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">学业运势</div><div style="font-size:11px;color:var(--text-dim);">印星当旺，学习效率高。建议攻克难点。</div></div>
+          <div class="dim-stars">★★★★★</div>
+        </div>
+        <div class="dim-card" style="padding:10px 0;">
+          <div class="dim-icon" style="background:#f4fff0;">🤝</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">人际运势</div><div style="font-size:11px;color:var(--text-dim);">贵人运上升，前辈相助。注意沟通方式。</div></div>
+          <div class="dim-stars">★★★★☆</div>
+        </div>
+      </div>
+
+      <!-- FAB -->
+      <div style="position:absolute;bottom:80px;right:20px;">
+        <div class="btn btn-fab" style="width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(192,64,64,.3);">🎲</div>
+        <div style="font-size:8px;color:var(--text-dim);text-align:center;margin-top:4px;">[快速起卦]</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 2: DIVINATION ====== -->
+  <div class="screen" id="screen-divination">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="screen-content">
+      <div class="section-title"><span class="bar"></span><h1 style="font-size:18px;">起卦</h1></div>
+
+      <div class="wf-label">[MODE TOGGLE]</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="toggle-group" style="flex:1;margin-right:12px;">
+          <button class="toggle-btn active">🌸 梅花易数</button>
+          <button class="toggle-btn">🪙 六爻</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="border:1px solid var(--border);">📋 历史</button>
+      </div>
+
+      <!-- Question -->
+      <div class="wf-label">[QUESTION INPUT]</div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">你想问什么？</label>
+        <input class="input" placeholder="例如：这次换工作能顺利吗？" value="这次换工作能顺利吗？">
+      </div>
+
+      <!-- MeiHua method -->
+      <div class="wf-label">[外应方式选择]</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="padding:12px 8px;border:2px solid var(--accent);border-radius:12px;text-align:center;background:var(--accent-bg);">
+          <div style="font-size:24px;">🕐</div>
+          <div style="font-size:11px;font-weight:600;">时间外应</div>
+          <div style="font-size:9px;color:var(--text-dim);">当前时间起卦</div>
+        </div>
+        <div style="padding:12px 8px;border:1px solid var(--border);border-radius:12px;text-align:center;">
+          <div style="font-size:24px;">📷</div>
+          <div style="font-size:11px;font-weight:600;">图片外应</div>
+          <div style="font-size:9px;color:var(--text-dim);">拍照上传</div>
+        </div>
+        <div style="padding:12px 8px;border:1px solid var(--border);border-radius:12px;text-align:center;">
+          <div style="font-size:24px;">✍️</div>
+          <div style="font-size:11px;font-weight:600;">文字外应</div>
+          <div style="font-size:9px;color:var(--text-dim);">描述现象</div>
+        </div>
+      </div>
+
+      <!-- Time display -->
+      <div class="card" style="text-align:center;">
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">当前时间</p>
+        <p style="font-size:22px;font-weight:700;">2026年7月24日 17:20</p>
+      </div>
+
+      <button class="btn btn-primary btn-block" style="margin-top:8px;">
+        🪙 开始解卦
+      </button>
+
+      <!-- Result area (after divination) -->
+      <div class="wf-label" style="margin-top:20px;">[解卦结果 — AI生成]</div>
+      <div style="text-align:center;margin-bottom:16px;">
+        <span class="badge badge-gold">◆ 第3爻动</span>
+        <h2 style="font-family:var(--font-display);font-size:22px;font-weight:700;margin:8px 0;">
+          风雷益 <span style="color:var(--text-dim);">→</span> 风火家人
+        </h2>
+      </div>
+
+      <div class="card" style="font-size:13px;line-height:1.8;color:var(--text);">
+        <p style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:8px;">壹 · 排卦简述</p>
+        <p style="margin-bottom:16px;">前三位3、8、5得出上卦为离☲，象征光明与洞察；下卦为巽☴，象征柔顺与渗透。三数之和16除以6余4，故第3爻动。</p>
+
+        <p style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:8px;">贰 · 本卦分析 「风雷益」</p>
+        <blockquote style="margin:0 0 12px 0;padding:10px 14px;background:#fdfaf4;border-left:2px solid var(--gold);border-radius:0 8px 8px 0;font-style:italic;">"利有攸往，利涉大川。"</blockquote>
+        <p style="margin-bottom:16px;">益卦代表增益、向前。这个卦象说明你的换工作是顺势而为，时机已经成熟。</p>
+
+        <p style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:8px;">叁 · 动爻精解 六三</p>
+        <blockquote style="margin:0 0 12px 0;padding:10px 14px;background:#fdfaf4;border-left:2px solid var(--gold);border-radius:0 8px 8px 0;font-style:italic;">"益之用凶事，无咎。"</blockquote>
+        <p style="margin-bottom:16px;">在艰难中也能获益。你可能担心换工作的风险，但这一爻告诉你：即使有波折，最终无损。</p>
+
+        <p style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:8px;">肆 · 变卦走向 「风火家人」</p>
+        <p style="margin-bottom:16px;">从益到家人，暗示新工作会让你有归属感。家文化浓厚的公司可能更适合你。</p>
+
+        <p style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:8px;">伍 · 综合判断</p>
+        <p>综合来看，三个月内有不错的机会。建议优先考虑团队氛围好的公司，而非只看薪资。东南方向的机会更有利。</p>
+      </div>
+
+      <!-- Follow-up chat -->
+      <div class="wf-label" style="margin-top:16px;">[追问对话区]</div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+          <div class="chat-bubble user">三个月内的话，具体几月比较有利？</div>
+        </div>
+        <div class="chat-bubble ai" style="max-width:85%;">
+          从变卦风火家人来看，农历八月（公历9月）会有一个比较好的窗口期。因为九月火旺，与你卦中的离火相合。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <input class="input" placeholder="继续追问..." style="flex:1;font-size:13px;">
+        <button class="btn btn-primary btn-sm" style="flex-shrink:0;">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 3: DIARY ====== -->
+  <div class="screen" id="screen-diary">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="screen-content">
+      <div class="section-title"><span class="bar"></span><h1 style="font-size:18px;">运势日记</h1></div>
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;margin-left:12px;">记录你的实际感受，帮助 AI 更准确地理解你的运势模式。</p>
+
+      <button class="btn btn-outline btn-sm" style="margin-bottom:16px;">✍️ 写新日记</button>
+
+      <div class="wf-label">[日记列表]</div>
+      <div class="hist-item">
+        <div class="meta">
+          <span class="badge badge-gold">乙未月 (7月)</span>
+          <span style="font-size:10px;color:var(--text-hint);">2026-07-22</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.6;">这个月运势说财运不错，实际确实收到了一笔意外的奖金！不过感情运势好像没有运势说的那么好...</p>
+      </div>
+      <div class="hist-item">
+        <div class="meta">
+          <span class="badge badge-gold">甲午月 (6月)</span>
+          <span style="font-size:10px;color:var(--text-hint);">2026-07-01</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.6;">上个月整体感觉比较平稳。健康方面运势提醒注意肠胃，确实胃不舒服了几天。</p>
+      </div>
+      <div class="hist-item">
+        <div class="meta">
+          <span class="badge badge-gold">本周</span>
+          <span style="font-size:10px;color:var(--text-hint);">2026-07-18</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.6;">周二遇到一个贵人，帮我解决了一个技术难题。和运势说的人际关系上升一致。</p>
+      </div>
+
+      <!-- Empty state (shown when no entries) -->
+      <div style="display:none;" class="empty-state">
+        <div class="icon">📔</div>
+        <h3>还没有日记记录</h3>
+        <p>写第一篇吧 ✍️</p>
+      </div>
+
+      <!-- Write form -->
+      <div class="wf-label" style="margin-top:16px;">[写日记表单]</div>
+      <div class="card">
+        <div style="margin-bottom:12px;">
+          <label class="form-label">时间段</label>
+          <input class="input" placeholder="例如：乙未月 (7月) 或 本周" value="乙未月 (7月)">
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">你的感受</label>
+          <textarea class="input" rows="3" style="resize:none;" placeholder="这个月的实际感受如何？和运势描述一致吗？">运势说事业运上升，确实这个月项目推进顺利。感情方面比较平淡...</textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm">保存</button>
+          <button class="btn btn-ghost btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SCREEN 4: PROFILE ====== -->
+  <div class="screen" id="screen-profile">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="screen-content">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+          <span class="bar" style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+          <h1 style="font-family:var(--font-display);font-size:18px;font-weight:600;">命盘</h1>
+        </div>
+        <select style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:#fff;flex:1;">
+          <option>测试用户 · 庚午年 · 男</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" style="color:var(--text-dim);">删除</button>
+        <button class="btn btn-primary btn-sm">+ 新建</button>
+      </div>
+
+      <!-- Birth form -->
+      <div class="wf-label">[出生信息录入表单]</div>
+      <div class="card" style="display:none;">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">录入出生信息</h3>
+        <div class="form-row">
+          <div><label class="form-label">姓名</label><input class="input" placeholder="输入姓名或称呼"></div>
+          <div><label class="form-label">性别</label>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-sm" style="flex:1;background:var(--accent-bg);border:1px solid var(--accent);color:var(--accent);border-radius:8px;">👨 男</button>
+              <button class="btn btn-sm" style="flex:1;border:1px solid var(--border);background:#fff;border-radius:8px;">👩 女</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">出生年份</label><input class="input" type="number" value="1990"></div>
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;"><label class="form-label">月</label><input class="input" type="number" value="6"></div>
+            <div style="flex:1;"><label class="form-label">日</label><input class="input" type="number" value="15"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">时辰</label>
+            <select class="input"><option>午时 (11:00-13:00)</option></select>
+          </div>
+          <div><label class="form-label">出生地</label><input class="input" placeholder="如：北京" value="北京"></div>
+        </div>
+        <button class="btn btn-primary btn-block">保存命盘</button>
+      </div>
+
+      <!-- Bazi Chart -->
+      <div class="wf-label">[四柱八字排盘]</div>
+      <div class="pillar-grid" style="margin-bottom:12px;">
+        <div class="pillar">
+          <div class="lbl">年柱</div>
+          <div class="gz">庚午</div>
+          <div class="sub">庚 · 午</div>
+          <div class="ss">正官</div>
+        </div>
+        <div class="pillar">
+          <div class="lbl">月柱</div>
+          <div class="gz">壬午</div>
+          <div class="sub">壬 · 午</div>
+          <div class="ss">伤官</div>
+        </div>
+        <div class="pillar day">
+          <div class="lbl">日柱</div>
+          <div class="gz">辛卯</div>
+          <div class="sub">辛 · 卯</div>
+          <div class="ss">日主</div>
+        </div>
+        <div class="pillar">
+          <div class="lbl">时柱</div>
+          <div class="gz">甲午</div>
+          <div class="sub">甲 · 午</div>
+          <div class="ss">正财</div>
+        </div>
+      </div>
+
+      <!-- Day Master + Yong Shen -->
+      <div class="wf-label">[日主 & 用神]</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:10px;color:var(--text-dim);">日主</div>
+          <div style="font-size:24px;font-weight:700;font-family:var(--font-display);">辛</div>
+          <div style="font-size:13px;color:var(--text-dim);">金命</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:10px;color:var(--text-dim);">用神 / 忌神</div>
+          <div style="display:flex;gap:6px;justify-content:center;margin-top:4px;">
+            <span class="tag tag-good">土</span>
+            <span class="tag tag-warn">火</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">土生金为用，火克金为忌</div>
+        </div>
+      </div>
+
+      <!-- Wu Xing -->
+      <div class="wf-label">[五行分布]</div>
+      <div class="card" style="padding:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:11px;width:16px;text-align:right;color:var(--text-dim);">金</span>
+          <div style="flex:1;height:8px;background:#f3efe9;border-radius:4px;overflow:hidden;"><div style="width:30%;height:100%;background:#e8c97a;border-radius:4px;"></div></div>
+          <span style="font-size:10px;color:var(--text-dim);width:32px;">30%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:11px;width:16px;text-align:right;color:var(--text-dim);">木</span>
+          <div style="flex:1;height:8px;background:#f3efe9;border-radius:4px;overflow:hidden;"><div style="width:20%;height:100%;background:#7ec97a;border-radius:4px;"></div></div>
+          <span style="font-size:10px;color:var(--text-dim);width:32px;">20%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:11px;width:16px;text-align:right;color:var(--text-dim);">水</span>
+          <div style="flex:1;height:8px;background:#f3efe9;border-radius:4px;overflow:hidden;"><div style="width:15%;height:100%;background:#7aa8c9;border-radius:4px;"></div></div>
+          <span style="font-size:10px;color:var(--text-dim);width:32px;">15%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:11px;width:16px;text-align:right;color:var(--text-dim);">火</span>
+          <div style="flex:1;height:8px;background:#f3efe9;border-radius:4px;overflow:hidden;"><div style="width:25%;height:100%;background:#c97a7a;border-radius:4px;"></div></div>
+          <span style="font-size:10px;color:var(--text-dim);width:32px;">25%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;width:16px;text-align:right;color:var(--text-dim);">土</span>
+          <div style="flex:1;height:8px;background:#f3efe9;border-radius:4px;overflow:hidden;"><div style="width:10%;height:100%;background:#c9a87a;border-radius:4px;"></div></div>
+          <span style="font-size:10px;color:var(--text-dim);width:32px;">10%</span>
+        </div>
+      </div>
+
+      <!-- DaYun Timeline -->
+      <div class="wf-label">[大运时间轴]</div>
+      <div class="card" style="padding:14px;">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">大运（6岁起运）</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="padding:6px 10px;background:#fdfcfa;border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">己巳<div style="font-size:8px;color:var(--text-dim);">6-15岁</div></span>
+          <span style="padding:6px 10px;background:#fdfcfa;border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">戊辰<div style="font-size:8px;color:var(--text-dim);">16-25岁</div></span>
+          <span style="padding:6px 10px;background:#fdfcfa;border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">丁卯<div style="font-size:8px;color:var(--text-dim);">26-35岁</div></span>
+          <span style="padding:6px 10px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:8px;font-size:11px;text-align:center;font-weight:600;">丙寅<div style="font-size:8px;color:var(--accent);">36-45岁 ←</div></span>
+          <span style="padding:6px 10px;background:#fdfcfa;border:1px solid var(--border);border-radius:8px;font-size:11px;text-align:center;">乙丑<div style="font-size:8px;color:var(--text-dim);">46-55岁</div></span>
+        </div>
+      </div>
+
+      <!-- Analysis -->
+      <div class="wf-label">[AI命局解读]</div>
+      <div class="card card-gold">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:8px;color:var(--gold);">命局总览</h3>
+        <p style="font-size:13px;line-height:1.8;color:var(--text);">日主辛金，生于午月火旺之时，火克金为忌。但年柱庚金为劫财相助，时柱甲木正财透出。用神取土来泄火生金，忌神为火。总体格局中等偏上，早年行运平稳，中年丙寅运财星发露。</p>
+      </div>
+
+      <div class="card" style="margin-bottom:12px;">
+        <h3 style="font-size:13px;font-weight:600;margin-bottom:6px;">性格特征</h3>
+        <p style="font-size:13px;line-height:1.8;color:var(--text);">辛金属阴金，如珠宝首饰，为人细腻、有品味。伤官透干，思维敏捷但不喜束缚。正财透时柱，对财富有较强的规划意识。</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="card"><h3 style="font-size:12px;font-weight:600;margin-bottom:4px;">💼 事业</h3><p style="font-size:11px;line-height:1.6;color:var(--text);">伤官生财，适合创意和技术方向。</p></div>
+        <div class="card"><h3 style="font-size:12px;font-weight:600;margin-bottom:4px;">💰 财运</h3><p style="font-size:11px;line-height:1.6;color:var(--text);">正财透出，稳定收入为主。</p></div>
+        <div class="card"><h3 style="font-size:12px;font-weight:600;margin-bottom:4px;">❤️ 感情</h3><p style="font-size:11px;line-height:1.6;color:var(--text);">日坐偏财，配偶能干。</p></div>
+        <div class="card"><h3 style="font-size:12px;font-weight:600;margin-bottom:4px;">🏃 健康</h3><p style="font-size:11px;line-height:1.6;color:var(--text);">火旺注意心血管保养。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== BOTTOM TAB BAR ====== -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchScreen('fortune')">
+      <span class="icon">🔮</span>运势
+    </button>
+    <button class="tab-btn" onclick="switchScreen('divination')">
+      <span class="icon">🎲</span>起卦
+    </button>
+    <button class="tab-btn" onclick="switchScreen('diary')">
+      <span class="icon">📔</span>日记
+    </button>
+    <button class="tab-btn" onclick="switchScreen('profile')">
+      <span class="icon">👤</span>我的
+    </button>
+  </div>
+
+</div>
+
+<script>
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    const screens = ['fortune', 'divination', 'diary', 'profile'];
+    b.classList.toggle('active', screens[i] === name);
+  });
+}
+</script>
+</body>
+</html>

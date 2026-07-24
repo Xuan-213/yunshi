@@ -155,12 +155,15 @@ export default function ProfilePage() {
                     { label: "年柱", p: chart.bazi.year, ss: chart.shiShen.year },
                     { label: "月柱", p: chart.bazi.month, ss: chart.shiShen.month },
                     { label: "日柱", p: chart.bazi.day, ss: "日主" },
-                    { label: "时柱", p: chart.bazi.hour, ss: chart.shiShen.hour },
-                  ].map(({ label, p, ss }) => (
+                    { label: "时柱", p: chart.bazi.hour, ss: chart.shiShen.hour, ts: chart.trueSolarInfo },
+                  ].map(({ label, p, ss, ts }: any) => (
                     <div key={label} className={`bg-white border rounded-xl p-4 text-center ${label === "日柱" ? "border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]" : "border-[var(--color-border)]"}`}>
                       <div className="text-[10px] text-[var(--color-text-dim)] mb-2 tracking-wider uppercase">{label}</div>
                       <div className="text-2xl font-bold font-[var(--font-display)] mb-1">{p.ganZhi}</div>
                       <div className="text-xs text-[var(--color-text-dim)]">{p.gan} · {p.zhi}</div>
+                      {ts && ts.offsetMin !== 0 && (
+                        <div className="text-[9px] text-[var(--color-accent)] mt-0.5">真太阳时 {ts.adjusted}</div>
+                      )}
                       <div className="text-[10px] mt-1.5 px-2 py-0.5 rounded-full inline-block bg-[#fdfaf4] text-[var(--color-gold)] font-medium">{ss}</div>
                     </div>
                   ))}

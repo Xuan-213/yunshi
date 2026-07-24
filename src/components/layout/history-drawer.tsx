@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getDivinations, type DivinationRecord } from "@/lib/store/local-store";
+import { getDivinationsByProfile, type DivinationRecord } from "@/lib/api/client";
 
 type HistoryMode = "meihua" | "liuyao" | "all";
 
@@ -9,27 +9,25 @@ interface Props {
   mode: HistoryMode;
   isOpen: boolean;
   onClose: () => void;
+  profileId: number | null;
 }
 
-export default function HistoryDrawer({ mode, isOpen, onClose }: Props) {
+export default function HistoryDrawer({ mode, isOpen, onClose, profileId }: Props) {
   const [records, setRecords] = useState<DivinationRecord[]>([]);
 
-  const load = useCallback(() => {
-    const all = getDivinations();
-    if (mode === "all") {
-      setRecords(all);
-    } else {
-      setRecords(all.filter(r => r.mode === mode));
-    }
-  }, [mode]);
+  const load = useCallback(async () => {
+    if (!profileId) { setRecords([]); return; }
+    try {
+      const all = await getDivinationsByProfile(profileId);
+      if (mode === "all") {
+        setRecords(all);
+      } else {
+        setRecords(all.filter(r => r.mode === mode));
+      }
+    } catch (e) { console.error("Failed to load history:", e); }
+  }, [mode, profileId]);
 
   useEffect(() => { if (isOpen) load(); }, [isOpen, load]);
-
-  function del(id: number) {
-    const all = JSON.parse(localStorage.getItem("yunshi_divinations") || "[]");
-    localStorage.setItem("yunshi_divinations", JSON.stringify(all.filter((r: any) => r.id !== id)));
-    load();
-  }
 
   return (
     <>
@@ -70,7 +68,6 @@ export default function HistoryDrawer({ mode, isOpen, onClose }: Props) {
                     <span className="text-xs text-[var(--color-text-hint)]">
                       {new Date(r.createdAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>
-                    <button onClick={() => del(r.id)} className="ml-auto text-xs text-[var(--color-text-hint)] hover:text-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-all">删除</button>
                   </div>
                   <div className="text-sm font-medium text-[var(--color-text-primary)]">{r.question}</div>
                   {r.result && (r.result as any).benGuaName && (

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { useProfiles } from "@/lib/store/profile-context";
-import { getDiaries, addDiary, type DiaryEntry } from "@/lib/store/local-store";
+import { getDiariesByProfile, addDiary, type DiaryEntry } from "@/lib/api/client";
 
 export default function DiaryPage() {
   const { activeProfile } = useProfiles();
@@ -13,16 +13,20 @@ export default function DiaryPage() {
   const [period, setPeriod] = useState("");
   const [content, setContent] = useState("");
 
-  const fetchEntries = useCallback(() => {
-    setEntries(getDiaries());
+  const fetchEntries = useCallback(async () => {
+    if (!activeProfile?.id) { setLoading(false); return; }
+    try {
+      const data = await getDiariesByProfile(activeProfile.id);
+      setEntries(data);
+    } catch (e) { console.error("Failed to load diaries:", e); }
     setLoading(false);
-  }, []);
+  }, [activeProfile?.id]);
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  function submit() {
+  async function submit() {
     if (!period.trim() || !content.trim()) return;
-    addDiary({ period, content, profileId: activeProfile?.id ?? null });
+    await addDiary({ period, content, profileId: activeProfile?.id ?? null });
     setPeriod(""); setContent(""); setShowForm(false);
     fetchEntries();
   }

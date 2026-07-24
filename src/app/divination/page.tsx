@@ -8,7 +8,7 @@ import { interpretMeihua } from "@/lib/meihua/jiegua";
 import { zhuangGua, type LiuYaoResult } from "@/lib/liuyao/zhuanggua";
 import { interpretLiuyao } from "@/lib/liuyao/jiegua";
 import { aiLiuyaoInterpret, aiFollowUp } from "@/lib/ai/deepseek";
-import { addDivination } from "@/lib/store/local-store";
+import { addDivination } from "@/lib/api/client";
 import { useHistory } from "@/lib/store/history-context";
 import HistoryDrawer from "@/components/layout/history-drawer";
 
@@ -281,7 +281,7 @@ export default function DivinationPage() {
             </button>
           </div>
 
-          <HistoryDrawer mode={histMode} isOpen={histOpen} onClose={closeHist} />
+          <HistoryDrawer mode={histMode} isOpen={histOpen} onClose={closeHist} profileId={activeProfile?.id ?? null} />
 
           {/* ====== MEIHUA ====== */}
           {mode === "meihua" && (

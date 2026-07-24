@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { getProfiles, addProfile, deleteProfile, type BirthProfile } from "./local-store";
+import { getProfiles, addProfile, deleteProfile, updateProfile, type BirthProfile } from "@/lib/api/client";
 
 export type { BirthProfile };
 
@@ -10,16 +10,16 @@ interface ProfileContextType {
   activeProfile: BirthProfile | null;
   loading: boolean;
   setActiveProfile: (id: number) => void;
-  refreshProfiles: () => void;
-  saveProfile: (p: Omit<BirthProfile, "id">) => BirthProfile;
-  removeProfile: (id: number) => void;
+  refreshProfiles: () => Promise<void>;
+  saveProfile: (p: Omit<BirthProfile, "id">) => Promise<BirthProfile>;
+  removeProfile: (id: number) => Promise<void>;
 }
 
 const Ctx = createContext<ProfileContextType>({
   profiles: [], activeProfile: null, loading: true,
-  setActiveProfile: () => {}, refreshProfiles: () => {},
-  saveProfile: () => ({ id: 0, name: "", initial: "", color: "", year: 0, month: 0, day: 0, hour: 0, minute: 0, gender: "", longitude: 0, baziSummary: "" }),
-  removeProfile: () => {},
+  setActiveProfile: () => {}, refreshProfiles: async () => {},
+  saveProfile: async () => ({ id: 0, name: "", initial: "", color: "", year: 0, month: 0, day: 0, hour: 0, minute: 0, gender: "", longitude: 0, baziSummary: "" }),
+  removeProfile: async () => {},
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -27,16 +27,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [activeProfile, setActive] = useState<BirthProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshProfiles = useCallback(() => {
-    const data = getProfiles();
-    setProfiles(data);
-    const savedId = localStorage.getItem("activeProfileId");
-    if (savedId) {
-      const p = data.find(p => p.id === parseInt(savedId));
-      if (p) setActive(p);
-      else if (data.length > 0) setActive(data[0]);
-    } else if (data.length > 0 && !activeProfile) {
-      setActive(data[0]);
+  const refreshProfiles = useCallback(async () => {
+    try {
+      const data = await getProfiles();
+      setProfiles(data);
+      const savedId = localStorage.getItem("activeProfileId");
+      if (savedId) {
+        const p = data.find(p => p.id === parseInt(savedId));
+        if (p) setActive(p);
+        else if (data.length > 0) setActive(data[0]);
+      } else if (data.length > 0 && !activeProfile) {
+        setActive(data[0]);
+      }
+    } catch (e) {
+      console.error("Failed to load profiles:", e);
     }
     setLoading(false);
   }, []);
@@ -48,15 +52,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (p) { setActive(p); localStorage.setItem("activeProfileId", String(id)); }
   }
 
-  function saveProfile(p: Omit<BirthProfile, "id">) {
-    const row = addProfile(p);
-    refreshProfiles();
+  async function saveProfile(p: Omit<BirthProfile, "id">) {
+    const row = await addProfile(p);
+    await refreshProfiles();
     return row;
   }
 
-  function removeProfile(id: number) {
-    deleteProfile(id);
-    refreshProfiles();
+  async function removeProfile(id: number) {
+    await deleteProfile(id);
+    await refreshProfiles();
   }
 
   return (
