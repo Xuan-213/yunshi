@@ -95,7 +95,7 @@ ${fbLine}
 关键：metaphor必须紧扣今日实际的五行生克关系，不能泛泛而谈。analysis必须引用具体的干支和十神关系，不能是\"运势平稳\"这种废话。`;
 
   try {
-    const raw = await serverChat([{ role: "user", content: prompt }], 0.85, 800);
+    const raw = await clientChat([{ role: "user", content: prompt }], 0.85, 800);
     return JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
   } catch { return { score: 3, scoreLabel: "中等", tags: "[\"平稳\"]", metaphor: "", analysis: "", advice: "" }; }
 }
@@ -116,7 +116,7 @@ export async function aiDimensionFortune(
   "tip": "一句实用的今日${dim}建议（15字以内）"
 }`;
   try {
-    const raw = await serverChat([{ role: "user", content: prompt }], 0.7, 400);
+    const raw = await clientChat([{ role: "user", content: prompt }], 0.7, 400);
     return JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
   } catch { return { analysis: "", tip: "" }; }
 }
