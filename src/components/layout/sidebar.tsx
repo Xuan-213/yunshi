@@ -58,7 +58,7 @@ export default function Sidebar() {
             </div>
             <div>
               <div className="text-sm font-medium text-[var(--color-text-primary)]">{activeProfile.name}</div>
-              <div className="text-xs text-[var(--color-text-dim)]">{activeProfile.baziSummary || `${activeProfile.year}年生`}</div>
+              <div className="text-xs text-[var(--color-text-dim)]">{activeProfile.baziSummary || `${activeProfile.birthYear}年生`}</div>
             </div>
           </Link>
         ) : (

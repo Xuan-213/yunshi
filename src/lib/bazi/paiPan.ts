@@ -2,9 +2,9 @@
 
 import {
   TIAN_GAN, DI_ZHI, type TianGan, type DiZhi,
-  getShiChen, getMonthGan, getHourGan,
+  getMonthGan, getHourGan, HOUR_PILLAR_TABLE,
   TIAN_GAN_WU_XING, DI_ZHI_WU_XING, DI_ZHI_CANG_GAN,
-  SIXTY_JIA_ZI, MONTH_ZHI, SHI_CHEN, type WuXing,
+  SIXTY_JIA_ZI, MONTH_ZHI, type WuXing,
 } from "./constants";
 import { getDayGanZhi, getHourZhiIndex } from "@/lib/calendar/lunar";
 
@@ -114,12 +114,12 @@ function getMonthPillar(yearGan: TianGan, month: number, day: number): Pillar {
   return { gan, zhi, ganZhi: gan + zhi };
 }
 
-/** 获取时柱 */
+/** 获取时柱 — 使用速查表确保零错误 */
 function getHourPillar(dayGan: TianGan, hour: number): Pillar {
-  const zhiIndex = getHourZhiIndex(hour);
-  const zhi = DI_ZHI[zhiIndex];
-  const gan = getHourGan(dayGan, zhiIndex);
-  return { gan, zhi, ganZhi: gan + zhi };
+  const dayIdx = TIAN_GAN.indexOf(dayGan);
+  const zhiIdx = getHourZhiIndex(hour);
+  const ganZhi = HOUR_PILLAR_TABLE[dayIdx][zhiIdx];
+  return { gan: ganZhi[0] as TianGan, zhi: ganZhi[1] as DiZhi, ganZhi };
 }
 
 /** 计算大运 */
@@ -168,8 +168,9 @@ function getShiShenFromWx(riWx: WuXing, otherGan: TianGan): string {
 
 /** 主排盘函数 */
 export function paiPan(input: BirthInput): MingPan {
-  // 真太阳时校正
+  // 真太阳时校正（仅作参考显示，不改变选定时辰）
   const solar = trueSolarHour(input.hour, input.minute, input.longitude);
+  const useHour = input.hour; // 直接使用用户选定的时钟时间
 
   // 计算四柱
   const yearPillar = getYearPillar(input.year);
@@ -177,7 +178,7 @@ export function paiPan(input: BirthInput): MingPan {
   const dayGanZhi = getDayGanZhi(input.year, input.month, input.day);
   const dayGan = dayGanZhi[0] as TianGan;
   const dayZhi = dayGanZhi[1] as DiZhi;
-  const hourPillar = getHourPillar(dayGan, solar.hour);
+  const hourPillar = getHourPillar(dayGan, useHour);
 
   const bazi: BaZiChart = {
     year: yearPillar,
@@ -240,6 +241,63 @@ export function paiPan(input: BirthInput): MingPan {
 
   return {
     bazi, cangGan, dayMaster, dayMasterWx, shiShen, wuXingCount, daYun, shenSha, trueSolarInfo,
+  };
+}
+
+/** 从手动输入的四柱构建命盘（不自动计算） */
+export function buildChartFromPillars(
+  y: string, m: string, d: string, h: string,
+  gender: "male" | "female", birthYear: number,
+): MingPan {
+  const yg = y[0] as TianGan, yz = y[1] as DiZhi;
+  const mg = m[0] as TianGan, mz = m[1] as DiZhi;
+  const dg = d[0] as TianGan, dz = d[1] as DiZhi;
+  const hg = h[0] as TianGan, hz = h[1] as DiZhi;
+
+  const bazi: BaZiChart = {
+    year:  { gan: yg, zhi: yz, ganZhi: y },
+    month: { gan: mg, zhi: mz, ganZhi: m },
+    day:   { gan: dg, zhi: dz, ganZhi: d },
+    hour:  { gan: hg, zhi: hz, ganZhi: h },
+  };
+
+  const dayMaster = dg;
+  const dayMasterWx = TIAN_GAN_WU_XING[dg];
+
+  const shiShen: ShiShenMap = {
+    year: getShiShenFromWx(dayMasterWx, yg),
+    month: getShiShenFromWx(dayMasterWx, mg),
+    day: "日主",
+    hour: getShiShenFromWx(dayMasterWx, hg),
+  };
+
+  const cangGan = [DI_ZHI_CANG_GAN[yz], DI_ZHI_CANG_GAN[mz], DI_ZHI_CANG_GAN[dz], DI_ZHI_CANG_GAN[hz]];
+  const wuXingCount: Record<WuXing, number> = { 金:0,木:0,水:0,火:0,土:0 };
+  [yg,mg,dg,hg,yz,mz,dz,hz].forEach(g => {
+    const wx = DI_ZHI_WU_XING[g as DiZhi] || TIAN_GAN_WU_XING[g as TianGan];
+    if (wx) wuXingCount[wx]++;
+  });
+
+  const ygIdx = TIAN_GAN.indexOf(yg);
+  const mzIdx = MONTH_ZHI.indexOf(mz);
+  const isYang = ygIdx % 2 === 0;
+  const isMale = gender === "male";
+  const forward = (isYang && isMale) || (!isYang && !isMale);
+  const startAge = Math.ceil(Math.abs(birthYear % 10 - 5) / 3) + 1;
+  const pillars: string[] = [];
+  for (let i = 0; i < 8; i++) {
+    const offset = forward ? (i + 1) : -(i + 1);
+    const idx = ((mzIdx + offset) % 12 + 12) % 12;
+    pillars.push(getMonthGan(yg, idx) + MONTH_ZHI[idx]);
+  }
+
+  const shenSha: string[] = [];
+  if (["申","子","辰"].includes(dz)) shenSha.push("天乙贵人");
+
+  return {
+    bazi, cangGan, dayMaster, dayMasterWx, shiShen, wuXingCount,
+    daYun: { startAge, pillars }, shenSha,
+    trueSolarInfo: { original: "", adjusted: "", offsetMin: 0 },
   };
 }
 

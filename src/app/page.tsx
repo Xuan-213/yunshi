@@ -7,7 +7,7 @@ import YiJiSection from "@/components/fortune/yiji-section";
 import LuckyStrip from "@/components/fortune/lucky-strip";
 import DimensionCards from "@/components/fortune/dimension-cards";
 import { useProfiles } from "@/lib/store/profile-context";
-import { paiPan } from "@/lib/bazi/paiPan";
+import { buildChartFromPillars } from "@/lib/bazi/paiPan";
 import { analyzeMingPan } from "@/lib/bazi/analysis";
 import { getDayGanZhi, solarToLunar } from "@/lib/calendar/lunar";
 import { aiDailyFortune, aiDimensionFortune } from "@/lib/ai/deepseek";
@@ -62,12 +62,11 @@ export default function HomePage() {
   const lunarDayNames = ["","初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
   const lunarStr = `${lunar.yearGanZhi}年 · ${lunarMonthNames[lunar.lunarMonth-1]}月${lunarDayNames[lunar.lunarDay]}`;
 
-  const chart = useMemo(() => activeProfile ? paiPan({
-    year: activeProfile.year, month: activeProfile.month, day: activeProfile.day,
-    hour: activeProfile.hour, minute: activeProfile.minute || 0,
-    gender: activeProfile.gender as "male" | "female",
-    longitude: activeProfile.longitude || 120,
-  }) : null, [activeProfile]);
+  const chart = useMemo(() => activeProfile ? buildChartFromPillars(
+    activeProfile.yearPillar, activeProfile.monthPillar,
+    activeProfile.dayPillar, activeProfile.hourPillar,
+    activeProfile.gender as "male" | "female", activeProfile.birthYear,
+  ) : null, [activeProfile]);
 
   const analysis = useMemo(() => chart ? analyzeMingPan(chart) : null, [chart]);
   const baziSummary = useMemo(() => chart && analysis

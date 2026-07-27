@@ -130,17 +130,17 @@ export async function createDiary(data: Omit<DiaryEntry, "id" | "createdAt">): P
 
 function toProfile(row: any): BirthProfile {
   return {
-    id: row.id,
+    id: Number(row.id),
     name: row.name,
     initial: row.initial,
     color: row.color ?? "",
-    year: row.year,
-    month: row.month,
-    day: row.day,
-    hour: row.hour,
-    minute: row.minute ?? 0,
+    year: Number(row.year),
+    month: Number(row.month),
+    day: Number(row.day),
+    hour: Number(row.hour),
+    minute: Number(row.minute ?? 0),
     gender: row.gender,
-    longitude: row.longitude ?? 120,
+    longitude: Number(row.longitude ?? 120),
     baziSummary: row.baziSummary ?? "",
   };
 }

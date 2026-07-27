@@ -143,3 +143,9 @@ export function getHourGan(dayGan: TianGan, hourZhiIndex: number): TianGan {
   const headIndex = (dayGanIndex % 5) * 2;
   return TIAN_GAN[(headIndex + hourZhiIndex) % 10];
 }
+
+/** 时柱速查表：日干×时辰 → 时柱干支 [dayGanIndex][shiChenIndex] */
+export const HOUR_PILLAR_TABLE: string[][] = TIAN_GAN.map((_, dgi) => {
+  const head = (dgi % 5) * 2;
+  return DI_ZHI.map((_, zhi) => TIAN_GAN[(head + zhi) % 10] + DI_ZHI[zhi]);
+});

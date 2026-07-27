@@ -1,25 +1,46 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { getProfiles, addProfile, deleteProfile, updateProfile, type BirthProfile } from "@/lib/api/client";
 
-export type { BirthProfile };
+export interface BirthProfile {
+  id: number;
+  name: string; initial: string; color: string;
+  gender: string; birthYear: number;
+  yearPillar: string; monthPillar: string; dayPillar: string; hourPillar: string;
+  baziSummary: string;
+}
+
+// Local API (no server needed for profiles)
+const PROFILE_KEY = "yunshi_profiles";
+function loadProfiles(): BirthProfile[] {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "[]"); } catch { return []; }
+}
+function saveProfiles(arr: BirthProfile[]) { localStorage.setItem(PROFILE_KEY, JSON.stringify(arr)); }
+
+export function getProfiles(): BirthProfile[] { return loadProfiles(); }
+export function addProfile(p: Omit<BirthProfile, "id">): BirthProfile {
+  const arr = loadProfiles();
+  const row: BirthProfile = { id: Date.now(), ...p };
+  arr.push(row); saveProfiles(arr); return row;
+}
+export function deleteProfile(id: number) { saveProfiles(loadProfiles().filter(p => p.id !== id)); }
 
 interface ProfileContextType {
   profiles: BirthProfile[];
   activeProfile: BirthProfile | null;
   loading: boolean;
   setActiveProfile: (id: number) => void;
-  refreshProfiles: () => Promise<void>;
-  saveProfile: (p: Omit<BirthProfile, "id">) => Promise<BirthProfile>;
-  removeProfile: (id: number) => Promise<void>;
+  refreshProfiles: () => void;
+  saveProfile: (p: Omit<BirthProfile, "id">) => BirthProfile;
+  removeProfile: (id: number) => void;
 }
+
+const def: BirthProfile = { id: 0, name: "", initial: "", color: "", gender: "male", birthYear: 1990, yearPillar: "", monthPillar: "", dayPillar: "", hourPillar: "", baziSummary: "" };
 
 const Ctx = createContext<ProfileContextType>({
   profiles: [], activeProfile: null, loading: true,
-  setActiveProfile: () => {}, refreshProfiles: async () => {},
-  saveProfile: async () => ({ id: 0, name: "", initial: "", color: "", year: 0, month: 0, day: 0, hour: 0, minute: 0, gender: "", longitude: 0, baziSummary: "" }),
-  removeProfile: async () => {},
+  setActiveProfile: () => {}, refreshProfiles: () => {},
+  saveProfile: () => def, removeProfile: () => {},
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -27,47 +48,32 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [activeProfile, setActive] = useState<BirthProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshProfiles = useCallback(async () => {
-    try {
-      const data = await getProfiles();
-      setProfiles(data);
-      const savedId = localStorage.getItem("activeProfileId");
-      if (savedId) {
-        const p = data.find(p => p.id === parseInt(savedId));
-        if (p) setActive(p);
-        else if (data.length > 0) setActive(data[0]);
-      } else if (data.length > 0 && !activeProfile) {
-        setActive(data[0]);
-      }
-    } catch (e) {
-      console.error("Failed to load profiles:", e);
+  const refresh = useCallback(() => {
+    const data = loadProfiles();
+    setProfiles(data);
+    const savedId = localStorage.getItem("activeProfileId");
+    if (savedId) {
+      const p = data.find(p => p.id === parseInt(savedId));
+      if (p) setActive(p); else if (data.length > 0) setActive(data[0]);
+    } else if (data.length > 0 && !activeProfile) {
+      setActive(data[0]);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { refreshProfiles(); }, [refreshProfiles]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   function setActiveProfile(id: number) {
     const p = profiles.find(p => p.id === id);
     if (p) { setActive(p); localStorage.setItem("activeProfileId", String(id)); }
   }
 
-  async function saveProfile(p: Omit<BirthProfile, "id">) {
-    const row = await addProfile(p);
-    await refreshProfiles();
-    return row;
+  function saveProfile(p: Omit<BirthProfile, "id">) {
+    const row = addProfile(p); refresh(); return row;
   }
+  function removeProfile(id: number) { deleteProfile(id); refresh(); }
 
-  async function removeProfile(id: number) {
-    await deleteProfile(id);
-    await refreshProfiles();
-  }
-
-  return (
-    <Ctx.Provider value={{ profiles, activeProfile, loading, setActiveProfile, refreshProfiles, saveProfile, removeProfile }}>
-      {children}
-    </Ctx.Provider>
-  );
+  return <Ctx.Provider value={{ profiles, activeProfile, loading, setActiveProfile, refreshProfiles: refresh, saveProfile, removeProfile }}>{children}</Ctx.Provider>;
 }
 
 export function useProfiles() { return useContext(Ctx); }
