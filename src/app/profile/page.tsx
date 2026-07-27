@@ -119,22 +119,6 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* API Key */}
-          <div className="mt-4 p-4 bg-white border border-[var(--color-border)] rounded-xl">
-            <div className="flex items-center gap-2 mb-2">
-              <span>🔑</span>
-              <span className="text-sm font-semibold">DeepSeek API Key</span>
-            </div>
-            <div className="flex gap-2">
-              <input type="password" className="flex-1 px-3 py-2 border border-[var(--color-border)] rounded-lg text-sm"
-                placeholder="sk-..." id="api-key-input"
-                defaultValue={typeof window !== "undefined" ? localStorage.getItem("ds_key") || "" : ""}
-                onChange={e => localStorage.setItem("ds_key", e.target.value.trim())}
-              />
-            </div>
-            <p className="text-xs text-[var(--color-text-hint)] mt-1">粘贴后自动保存，AI 运势和六爻解卦都需要它</p>
-          </div>
-
           {!loading && !activeProfile && (
             <div className="text-center py-20">
               <div className="text-5xl mb-4">🌿</div>
