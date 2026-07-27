@@ -1,23 +1,24 @@
-// ====== DeepSeek AI 客户端（通过服务端 API 代理） ======
+// ====== DeepSeek AI 客户端 ======
 
 interface ChatMessage { role: "system" | "user" | "assistant"; content: string; }
 
-/** 通用聊天 — 调服务端 /api/ai */
-async function serverChat(messages: ChatMessage[], temp = 0.8, maxTokens = 2048): Promise<string> {
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "chat", messages, temp, maxTokens }),
-  });
-  if (!res.ok) throw new Error(`AI API ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.content;
+function getKey(): string {
+  if (typeof window !== "undefined") return localStorage.getItem("ds_key") || "";
+  return process.env.DEEPSEEK_API_KEY || "";
 }
 
-/** 客户端调用（兼容旧接口） */
+/** 直接调 DeepSeek API */
 export async function clientChat(messages: ChatMessage[], temp = 0.8, maxTokens = 2048): Promise<string> {
-  return serverChat(messages, temp, maxTokens);
+  const key = getKey();
+  if (!key) throw new Error("No API key");
+  const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+    body: JSON.stringify({ model: "deepseek-chat", messages, temperature: temp, max_tokens: maxTokens }),
+  });
+  if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
+  const data = await res.json();
+  return data.choices[0].message.content;
 }
 
 /** AI 六爻叙事解卦 */

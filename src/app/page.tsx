@@ -60,7 +60,7 @@ export default function HomePage() {
   const lunar = solarToLunar(now.getFullYear(), now.getMonth() + 1, now.getDate());
   const lunarMonthNames = ["正","二","三","四","五","六","七","八","九","十","冬","腊"];
   const lunarDayNames = ["","初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
-  const lunarStr = `${lunar.yearGanZhi}年 · ${lunarMonthNames[lunar.lunarMonth-1]}月${lunarDayNames[lunar.lunarDay]}`;
+  const lunarStr = lunar.lunarDay ? `${lunar.yearGanZhi}年 · ${lunarMonthNames[lunar.lunarMonth-1] || ""}月${lunarDayNames[lunar.lunarDay] || ""}` : `${dayGanZhi}日`;
 
   const chart = useMemo(() => activeProfile ? buildChartFromPillars(
     activeProfile.yearPillar, activeProfile.monthPillar,
@@ -107,7 +107,7 @@ export default function HomePage() {
         tags: (typeof ai.tags === "string" ? (() => { try { return JSON.parse(ai.tags); } catch { return []; } })() : ai.tags) || [],
         metaphor: ai.metaphor || "", analysis: ai.analysis || "", advice: ai.advice || "",
         yi: ["📝 签约", "🤝 合作", "💰 理财", "📚 学习"], ji: ["⚔️ 争执", "💸 大额消费"],
-        dimensions: dims.map(d => d.analysis ? d : { ...d, analysis: `${d.name}运势平稳，按部就班推进即可。`, tip: "💡 保持平常心" }),
+        dimensions: dims.map(d => d.analysis ? d : { ...d, analysis: `今日${d.name}方面较平稳，没有大的起伏。按自己的节奏推进即可。`, tip: "💡 保持平常心" }),
         lucky: [
           { icon: "🎨", label: "幸运色", value: (ai.score||3) >= 4 ? "金色 · 白色" : "蓝色 · 黑色" },
           { icon: "🔢", label: "幸运数字", value: (ai.score||3) >= 4 ? "6 · 8" : "3 · 7" },
